@@ -17,7 +17,7 @@ class AudioAnalyzer: ObservableObject {
     @Published var selectedDevice: AudioDevice?
 
     // MARK: - Configuration
-    private let sampleRate: Double = 44100
+    private var sampleRate: Double = 44100     // Will be updated to match hardware
     private let bufferSize: Int = 2048          // ~46ms latency at 44.1kHz
     private let fftSize: Int = 2048
 
@@ -67,9 +67,16 @@ class AudioAnalyzer: ObservableObject {
     // MARK: - Setup
 
     private func setupAudioEngine() {
+        // Use the input node's output format to match hardware sample rate
+        let hardwareFormat = inputNode.outputFormat(forBus: 0)
+
+        // Update our sample rate to match the hardware
+        sampleRate = hardwareFormat.sampleRate
+
+        // Create a compatible mono format with the hardware's sample rate
         let format = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
-            sampleRate: sampleRate,
+            sampleRate: hardwareFormat.sampleRate,
             channels: 1,
             interleaved: false
         )!

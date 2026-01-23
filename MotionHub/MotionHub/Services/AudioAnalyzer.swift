@@ -230,11 +230,14 @@ class AudioAnalyzer: ObservableObject {
         // Perform FFT
         var realPart = [Float](repeating: 0, count: fftSize)
         var imagPart = [Float](repeating: 0, count: fftSize)
+        var zeroImagInput = [Float](repeating: 0, count: fftSize)
 
         windowedSamples.withUnsafeBufferPointer { samplesPtr in
-            realPart.withUnsafeMutableBufferPointer { realPtr in
-                imagPart.withUnsafeMutableBufferPointer { imagPtr in
-                    vDSP_DFT_Execute(setup, samplesPtr.baseAddress!, nil, realPtr.baseAddress!, imagPtr.baseAddress!)
+            zeroImagInput.withUnsafeBufferPointer { zeroImagPtr in
+                realPart.withUnsafeMutableBufferPointer { realPtr in
+                    imagPart.withUnsafeMutableBufferPointer { imagPtr in
+                        vDSP_DFT_Execute(setup, samplesPtr.baseAddress!, zeroImagPtr.baseAddress!, realPtr.baseAddress!, imagPtr.baseAddress!)
+                    }
                 }
             }
         }

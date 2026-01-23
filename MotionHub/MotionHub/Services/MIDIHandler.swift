@@ -250,12 +250,19 @@ struct MIDIEventListGenerator: Sequence, IteratorProtocol {
         }
 
         // Move to next packet
-        if let nextPacket = MIDIEventPacketNext(packet) {
-            currentPacket = nextPacket
+        if remainingPackets > 0 {
+            currentPacket = UnsafePointer(MIDIEventPacketNext(packet.mutablePointer))
         } else {
             currentPacket = nil
         }
 
         return bytes
+    }
+}
+
+// MARK: - Extensions
+extension UnsafePointer where Pointee == MIDIEventPacket {
+    var mutablePointer: UnsafeMutablePointer<MIDIEventPacket> {
+        return UnsafeMutablePointer(mutating: self)
     }
 }

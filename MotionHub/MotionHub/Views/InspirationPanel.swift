@@ -186,59 +186,41 @@ struct InspirationPanel: View {
     private func processMediaFiles(_ urls: [URL]) {
         guard !urls.isEmpty else { return }
 
-        print("Processing \(urls.count) media files...")
+        print("📁 Processing \(urls.count) media files...")
 
-        // Create media files from URLs
-        var mediaFiles: [MediaFile] = []
-        for url in urls {
-            let filename = url.lastPathComponent
-            let type: MediaType
-
-            let ext = url.pathExtension.lowercased()
-            switch ext {
-            case "jpg", "jpeg", "png", "heic", "tiff", "bmp":
-                type = .image
-            case "gif":
-                type = .gif
-            case "mp4", "mov", "m4v", "avi", "mkv":
-                type = .video
-            default:
-                continue // Skip unsupported files
-            }
-
-            mediaFiles.append(MediaFile(filename: filename, type: type))
-        }
-
-        guard !mediaFiles.isEmpty else {
-            print("No valid media files found")
-            return
+        // Start accessing security-scoped resources
+        let accessingURLs = urls.map { url -> (URL, Bool) in
+            let accessing = url.startAccessingSecurityScopedResource()
+            print("  - \(url.lastPathComponent): access=\(accessing)")
+            return (url, accessing)
         }
 
         // Create or update the current pack
         let packName = appState.currentPack?.name ?? "Untitled Pack"
-        let existingMedia = appState.currentPack?.mediaFiles ?? []
-        let allMedia = existingMedia + mediaFiles
-
-        // Create a temporary pack with the media files
-        let pack = InspirationPack(
-            name: packName,
-            mediaFiles: allMedia,
-            settings: appState.getCurrentSettings()
-        )
 
         // Save pack to disk (for file references)
         Task {
             do {
+                print("💾 Saving pack...")
                 let savedPack = try await packManager.savePack(
                     name: packName,
                     mediaFiles: urls,
                     settings: appState.getCurrentSettings()
                 )
 
+                // Stop accessing security-scoped resources
+                for (url, wasAccessing) in accessingURLs {
+                    if wasAccessing {
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                }
+
                 // Update app state on main thread
                 await MainActor.run {
                     appState.currentPack = savedPack
                     print("✅ Pack saved with \(savedPack.mediaFiles.count) media files")
+                    print("   Pack ID: \(savedPack.id)")
+                    print("   Media files: \(savedPack.mediaFiles.map { $0.filename }.joined(separator: ", "))")
                 }
 
                 // TODO: Trigger preprocessing
@@ -246,6 +228,14 @@ struct InspirationPanel: View {
 
             } catch {
                 print("❌ Error saving pack: \(error)")
+                print("   Error details: \(error.localizedDescription)")
+
+                // Stop accessing security-scoped resources on error
+                for (url, wasAccessing) in accessingURLs {
+                    if wasAccessing {
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                }
             }
         }
     }

@@ -17,7 +17,7 @@ class AudioAnalyzer: ObservableObject {
     @Published var selectedDevice: AudioDevice?
 
     // MARK: - Configuration
-    private let sampleRate: Double = 44100
+    private var sampleRate: Double = 44100     // Will be updated to match hardware
     private let bufferSize: Int = 2048          // ~46ms latency at 44.1kHz
     private let fftSize: Int = 2048
 
@@ -67,9 +67,16 @@ class AudioAnalyzer: ObservableObject {
     // MARK: - Setup
 
     private func setupAudioEngine() {
+        // Use the input node's output format to match hardware sample rate
+        let hardwareFormat = inputNode.outputFormat(forBus: 0)
+
+        // Update our sample rate to match the hardware
+        sampleRate = hardwareFormat.sampleRate
+
+        // Create a compatible mono format with the hardware's sample rate
         let format = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
-            sampleRate: sampleRate,
+            sampleRate: hardwareFormat.sampleRate,
             channels: 1,
             interleaved: false
         )!
@@ -145,8 +152,8 @@ class AudioAnalyzer: ObservableObject {
             mElement: kAudioObjectPropertyElementMain
         )
 
-        var dataSize: UInt32 = UInt32(MemoryLayout<CFString>.size)
-        var deviceName: CFString = "" as CFString
+        var name: Unmanaged<CFString>?
+        var dataSize = UInt32(MemoryLayout<Unmanaged<CFString>>.size)
 
         let status = AudioObjectGetPropertyData(
             deviceID,
@@ -154,14 +161,16 @@ class AudioAnalyzer: ObservableObject {
             0,
             nil,
             &dataSize,
-            &deviceName
+            &name
         )
 
-        guard status == noErr else { return nil }
+        guard status == noErr, let deviceName = name?.takeRetainedValue() as String? else {
+            return nil
+        }
 
         return AudioDevice(
             id: deviceID,
-            name: deviceName as String,
+            name: deviceName,
             uid: "\(deviceID)"
         )
     }
@@ -230,11 +239,14 @@ class AudioAnalyzer: ObservableObject {
         // Perform FFT
         var realPart = [Float](repeating: 0, count: fftSize)
         var imagPart = [Float](repeating: 0, count: fftSize)
+        let zeroImagInput = [Float](repeating: 0, count: fftSize)
 
         windowedSamples.withUnsafeBufferPointer { samplesPtr in
-            realPart.withUnsafeMutableBufferPointer { realPtr in
-                imagPart.withUnsafeMutableBufferPointer { imagPtr in
-                    vDSP_DFT_Execute(setup, samplesPtr.baseAddress!, nil, realPtr.baseAddress!, imagPtr.baseAddress!)
+            zeroImagInput.withUnsafeBufferPointer { zeroImagPtr in
+                realPart.withUnsafeMutableBufferPointer { realPtr in
+                    imagPart.withUnsafeMutableBufferPointer { imagPtr in
+                        vDSP_DFT_Execute(setup, samplesPtr.baseAddress!, zeroImagPtr.baseAddress!, realPtr.baseAddress!, imagPtr.baseAddress!)
+                    }
                 }
             }
         }

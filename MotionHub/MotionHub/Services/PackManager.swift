@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 import AppKit
 
 // MARK: - Pack Save Errors
@@ -178,7 +179,7 @@ class PackManager: ObservableObject {
         }
     }
 
-    func savePack(name: String, mediaFiles: [URL], settings: PackSettings) async throws -> InspirationPack {
+    func savePack(name: String, mediaFiles: [URL], settings: PackSettings, existingPackID: UUID? = nil) async throws -> InspirationPack {
         // MARK: - Validation
         logger.logPackSaveStart(name: name, mediaCount: mediaFiles.count)
 
@@ -188,7 +189,8 @@ class PackManager: ObservableObject {
             throw PackSaveError.emptyPackName
         }
 
-        guard !mediaFiles.isEmpty else {
+        // Only require media files if this is a new pack (not updating existing)
+        if existingPackID == nil && mediaFiles.isEmpty {
             logger.logValidationError("No media files provided")
             throw PackSaveError.noMediaFiles
         }
@@ -208,7 +210,7 @@ class PackManager: ObservableObject {
         }
 
         // MARK: - Directory Setup
-        let packID = UUID()
+        let packID = existingPackID ?? UUID()
         let packDirectory = Self.packsDirectory.appendingPathComponent(packID.uuidString)
         let mediaDirectory = packDirectory.appendingPathComponent("media")
         let artifactsDirectory = packDirectory.appendingPathComponent("artifacts")
@@ -237,15 +239,32 @@ class PackManager: ObservableObject {
             throw PackSaveError.directoryCreationFailed(path: artifactsDirectory.path, underlying: error)
         }
 
+        // MARK: - Load Existing Media Files (if updating)
+        var savedMediaFiles: [MediaFile] = []
+        if let existingPackID = existingPackID {
+            do {
+                let existingPack = try await loadPack(id: existingPackID)
+                savedMediaFiles = existingPack.mediaFiles
+                logger.debug("Loaded \(savedMediaFiles.count) existing media files", context: "PackSave")
+            } catch {
+                logger.warning("Could not load existing pack, starting fresh: \(error.localizedDescription)", context: "PackSave")
+            }
+        }
+
         // MARK: - Copy Media Files
         logger.logPackSaveProgress(step: "Copying media files", details: "\(mediaFiles.count) files")
-        var savedMediaFiles: [MediaFile] = []
 
         for (index, mediaURL) in mediaFiles.enumerated() {
             let filename = mediaURL.lastPathComponent
             let destinationURL = mediaDirectory.appendingPathComponent(filename)
 
             logger.debug("Copying file \(index + 1)/\(mediaFiles.count): \(filename)", context: "PackSave")
+
+            // Skip if file already exists (for updates)
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                logger.debug("Skipping existing file: \(filename)", context: "PackSave")
+                continue
+            }
 
             do {
                 // Handle duplicate filenames
@@ -267,8 +286,10 @@ class PackManager: ObservableObject {
                 savedMediaFiles.append(MediaFile(filename: finalDestination.lastPathComponent, type: mediaType))
             } catch {
                 logger.logPackSaveError(error, step: "Copy file: \(filename)")
-                // Clean up on failure
-                try? FileManager.default.removeItem(at: packDirectory)
+                // Clean up on failure only if this is a new pack
+                if existingPackID == nil {
+                    try? FileManager.default.removeItem(at: packDirectory)
+                }
                 throw PackSaveError.fileCopyFailed(source: mediaURL, destination: destinationURL, underlying: error)
             }
         }
@@ -294,7 +315,9 @@ class PackManager: ObservableObject {
             logger.debug("Manifest encoded: \(manifestData.count) bytes", context: "PackSave")
         } catch {
             logger.logPackSaveError(error, step: "Encode manifest")
-            try? FileManager.default.removeItem(at: packDirectory)
+            if existingPackID == nil {
+                try? FileManager.default.removeItem(at: packDirectory)
+            }
             throw PackSaveError.manifestEncodingFailed(underlying: error)
         }
 
@@ -303,7 +326,9 @@ class PackManager: ObservableObject {
             logger.logFileOperation(operation: "Write manifest", path: manifestURL.path, success: true)
         } catch {
             logger.logPackSaveError(error, step: "Write manifest")
-            try? FileManager.default.removeItem(at: packDirectory)
+            if existingPackID == nil {
+                try? FileManager.default.removeItem(at: packDirectory)
+            }
             throw PackSaveError.manifestWriteFailed(path: manifestURL.path, underlying: error)
         }
 

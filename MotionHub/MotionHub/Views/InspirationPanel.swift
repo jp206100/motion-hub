@@ -154,21 +154,26 @@ struct InspirationPanel: View {
     // MARK: - File Handling
 
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
-        var urls: [URL] = []
+        let group = DispatchGroup()
+        var loadedURLs: [URL] = []
 
         for provider in providers {
+            group.enter()
             _ = provider.loadDataRepresentation(for: .fileURL) { data, error in
+                defer { group.leave() }
                 if let data = data,
                    let path = String(data: data, encoding: .utf8),
                    let url = URL(string: path) {
-                    urls.append(url)
+                    DispatchQueue.main.async {
+                        loadedURLs.append(url)
+                    }
                 }
             }
         }
 
-        // Process URLs after a short delay to ensure all are loaded
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            processMediaFiles(urls)
+        // Process URLs after all are loaded
+        group.notify(queue: .main) {
+            self.processMediaFiles(loadedURLs)
         }
 
         return true
@@ -184,8 +189,61 @@ struct InspirationPanel: View {
     }
 
     private func processMediaFiles(_ urls: [URL]) {
-        // TODO: Trigger preprocessing
-        print("Processing \(urls.count) media files...")
-        // This will be implemented when we add PreprocessingManager
+        guard !urls.isEmpty else { return }
+
+        print("📁 Processing \(urls.count) media files...")
+
+        // Start accessing security-scoped resources
+        let accessingURLs = urls.map { url -> (URL, Bool) in
+            let accessing = url.startAccessingSecurityScopedResource()
+            print("  - \(url.lastPathComponent): access=\(accessing)")
+            return (url, accessing)
+        }
+
+        // Create or update the current pack
+        let packName = appState.currentPack?.name ?? "Untitled Pack"
+        let existingPackID = appState.currentPack?.id
+
+        // Save pack to disk (for file references)
+        Task {
+            do {
+                print("💾 Saving pack...")
+                let savedPack = try await packManager.savePack(
+                    name: packName,
+                    mediaFiles: urls,
+                    settings: appState.getCurrentSettings(),
+                    existingPackID: existingPackID
+                )
+
+                // Stop accessing security-scoped resources
+                for (url, wasAccessing) in accessingURLs {
+                    if wasAccessing {
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                }
+
+                // Update app state on main thread
+                await MainActor.run {
+                    appState.currentPack = savedPack
+                    print("✅ Pack saved with \(savedPack.mediaFiles.count) media files")
+                    print("   Pack ID: \(savedPack.id)")
+                    print("   Media files: \(savedPack.mediaFiles.map { $0.filename }.joined(separator: ", "))")
+                }
+
+                // TODO: Trigger preprocessing
+                // This will be implemented when we add PreprocessingManager
+
+            } catch {
+                print("❌ Error saving pack: \(error)")
+                print("   Error details: \(error.localizedDescription)")
+
+                // Stop accessing security-scoped resources on error
+                for (url, wasAccessing) in accessingURLs {
+                    if wasAccessing {
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                }
+            }
+        }
     }
 }

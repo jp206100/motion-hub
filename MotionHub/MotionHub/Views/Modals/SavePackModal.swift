@@ -13,6 +13,11 @@ struct SavePackModal: View {
 
     @State private var packName: String = ""
     @State private var isSaving = false
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
+    @State private var errorSuggestion: String?
+
+    private let logger = DebugLogger.shared
 
     var body: some View {
         ZStack {
@@ -100,6 +105,11 @@ struct SavePackModal: View {
                     .stroke(AppColors.borderLight, lineWidth: 1)
             )
             .shadow(color: .black.opacity(0.5), radius: 20)
+            .alert("Save Failed", isPresented: $showErrorAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(errorMessage + (errorSuggestion.map { "\n\n\($0)" } ?? ""))
+            }
         }
     }
 
@@ -119,14 +129,31 @@ struct SavePackModal: View {
     private func savePack() {
         guard !packName.isEmpty else { return }
         isSaving = true
+        logger.info("User initiated pack save: '\(packName)'", context: "SavePackModal")
 
         Task {
             do {
                 // Get media files URLs
                 let mediaFiles = appState.currentPack?.mediaFiles ?? []
+                logger.debug("Collecting \(mediaFiles.count) media file URLs", context: "SavePackModal")
+
                 let urls = mediaFiles.compactMap { file -> URL? in
                     guard let pack = appState.currentPack else { return nil }
                     return packManager.mediaURL(for: file, in: pack.id)
+                }
+
+                logger.debug("Resolved \(urls.count) valid URLs", context: "SavePackModal")
+
+                // Check if we have any files to save
+                if urls.isEmpty && mediaFiles.isEmpty {
+                    logger.warning("No media files to save", context: "SavePackModal")
+                    await MainActor.run {
+                        errorMessage = "No media files to save"
+                        errorSuggestion = "Add images, videos, or GIFs to your pack before saving"
+                        showErrorAlert = true
+                        isSaving = false
+                    }
+                    return
                 }
 
                 let pack = try await packManager.savePack(
@@ -135,14 +162,27 @@ struct SavePackModal: View {
                     settings: appState.getCurrentSettings()
                 )
 
+                logger.info("Pack save completed successfully", context: "SavePackModal")
+
                 await MainActor.run {
                     appState.currentPack = pack
                     appState.showSavePackModal = false
                     isSaving = false
                 }
-            } catch {
-                print("Error saving pack: \(error)")
+            } catch let error as PackSaveError {
+                logger.error("Pack save failed with PackSaveError", error: error, context: "SavePackModal")
                 await MainActor.run {
+                    errorMessage = error.errorDescription ?? "Unknown error occurred"
+                    errorSuggestion = error.recoverySuggestion
+                    showErrorAlert = true
+                    isSaving = false
+                }
+            } catch {
+                logger.error("Pack save failed with unexpected error", error: error, context: "SavePackModal")
+                await MainActor.run {
+                    errorMessage = "An unexpected error occurred: \(error.localizedDescription)"
+                    errorSuggestion = "Please try again. If the problem persists, restart the application."
+                    showErrorAlert = true
                     isSaving = false
                 }
             }

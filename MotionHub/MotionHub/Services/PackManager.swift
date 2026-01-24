@@ -8,7 +8,69 @@
 import Foundation
 import AppKit
 
+// MARK: - Pack Save Errors
+
+enum PackSaveError: LocalizedError {
+    case emptyPackName
+    case noMediaFiles
+    case invalidMediaFile(url: URL, reason: String)
+    case directoryCreationFailed(path: String, underlying: Error)
+    case fileCopyFailed(source: URL, destination: URL, underlying: Error)
+    case manifestEncodingFailed(underlying: Error)
+    case manifestWriteFailed(path: String, underlying: Error)
+    case packNotFound(id: UUID)
+    case manifestLoadFailed(path: String, underlying: Error)
+
+    var errorDescription: String? {
+        switch self {
+        case .emptyPackName:
+            return "Pack name cannot be empty"
+        case .noMediaFiles:
+            return "At least one media file is required"
+        case .invalidMediaFile(let url, let reason):
+            return "Invalid media file '\(url.lastPathComponent)': \(reason)"
+        case .directoryCreationFailed(let path, let underlying):
+            return "Failed to create directory at '\(path)': \(underlying.localizedDescription)"
+        case .fileCopyFailed(let source, _, let underlying):
+            return "Failed to copy '\(source.lastPathComponent)': \(underlying.localizedDescription)"
+        case .manifestEncodingFailed(let underlying):
+            return "Failed to encode pack data: \(underlying.localizedDescription)"
+        case .manifestWriteFailed(let path, let underlying):
+            return "Failed to write manifest to '\(path)': \(underlying.localizedDescription)"
+        case .packNotFound(let id):
+            return "Pack not found: \(id.uuidString)"
+        case .manifestLoadFailed(let path, let underlying):
+            return "Failed to load pack manifest from '\(path)': \(underlying.localizedDescription)"
+        }
+    }
+
+    var recoverySuggestion: String? {
+        switch self {
+        case .emptyPackName:
+            return "Enter a name for your pack"
+        case .noMediaFiles:
+            return "Add at least one image, video, or GIF to your pack"
+        case .invalidMediaFile:
+            return "Remove the invalid file and try again"
+        case .directoryCreationFailed:
+            return "Check disk space and permissions"
+        case .fileCopyFailed:
+            return "Ensure the file exists and is readable"
+        case .manifestEncodingFailed, .manifestWriteFailed:
+            return "Try saving again. If the problem persists, restart the app"
+        case .packNotFound:
+            return "The pack may have been deleted. Refresh the pack list"
+        case .manifestLoadFailed:
+            return "The pack data may be corrupted. Try deleting and recreating it"
+        }
+    }
+}
+
 class PackManager: ObservableObject {
+    // MARK: - Properties
+
+    private let logger = DebugLogger.shared
+
     // MARK: - Directories
     static let applicationSupportDirectory: URL = {
         let appSupport = FileManager.default.urls(
@@ -79,74 +141,195 @@ class PackManager: ObservableObject {
     }
 
     func loadPack(id: UUID) async throws -> InspirationPack {
+        logger.logPackLoadStart(packID: id)
+
         let packDirectory = Self.packsDirectory.appendingPathComponent(id.uuidString)
         let manifestURL = packDirectory.appendingPathComponent("manifest.json")
 
-        let data = try Data(contentsOf: manifestURL)
-        let pack = try JSONDecoder().decode(InspirationPack.self, from: data)
+        // Check if pack exists
+        guard FileManager.default.fileExists(atPath: packDirectory.path) else {
+            let error = PackSaveError.packNotFound(id: id)
+            logger.logPackLoadError(error, packID: id)
+            throw error
+        }
 
-        // TODO: Load extracted artifacts
-        // let artifactsURL = packDirectory.appendingPathComponent("artifacts/artifacts.json")
-        // Load and process artifacts
+        logger.debug("Loading manifest from: \(manifestURL.path)", context: "PackLoad")
 
-        return pack
+        do {
+            let data = try Data(contentsOf: manifestURL)
+            logger.debug("Manifest data loaded: \(data.count) bytes", context: "PackLoad")
+
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let pack = try decoder.decode(InspirationPack.self, from: data)
+
+            logger.logPackLoadSuccess(name: pack.name)
+            logger.debug("Pack contains \(pack.mediaFiles.count) media files", context: "PackLoad")
+
+            // TODO: Load extracted artifacts
+            // let artifactsURL = packDirectory.appendingPathComponent("artifacts/artifacts.json")
+            // Load and process artifacts
+
+            return pack
+        } catch {
+            let loadError = PackSaveError.manifestLoadFailed(path: manifestURL.path, underlying: error)
+            logger.logPackLoadError(loadError, packID: id)
+            throw loadError
+        }
     }
 
     func savePack(name: String, mediaFiles: [URL], settings: PackSettings) async throws -> InspirationPack {
+        // MARK: - Validation
+        logger.logPackSaveStart(name: name, mediaCount: mediaFiles.count)
+
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else {
+            logger.logValidationError("Pack name is empty")
+            throw PackSaveError.emptyPackName
+        }
+
+        guard !mediaFiles.isEmpty else {
+            logger.logValidationError("No media files provided")
+            throw PackSaveError.noMediaFiles
+        }
+
+        // Validate media files exist and are readable
+        logger.logPackSaveProgress(step: "Validating media files")
+        for url in mediaFiles {
+            guard FileManager.default.fileExists(atPath: url.path) else {
+                logger.logValidationError("File does not exist: \(url.path)")
+                throw PackSaveError.invalidMediaFile(url: url, reason: "File does not exist")
+            }
+            guard FileManager.default.isReadableFile(atPath: url.path) else {
+                logger.logValidationError("File is not readable: \(url.path)")
+                throw PackSaveError.invalidMediaFile(url: url, reason: "File is not readable")
+            }
+            logger.debug("Validated: \(url.lastPathComponent)", context: "PackSave")
+        }
+
+        // MARK: - Directory Setup
         let packID = UUID()
         let packDirectory = Self.packsDirectory.appendingPathComponent(packID.uuidString)
         let mediaDirectory = packDirectory.appendingPathComponent("media")
         let artifactsDirectory = packDirectory.appendingPathComponent("artifacts")
 
-        // Create directories
-        try FileManager.default.createDirectory(
-            at: mediaDirectory,
-            withIntermediateDirectories: true
-        )
-        try FileManager.default.createDirectory(
-            at: artifactsDirectory,
-            withIntermediateDirectories: true
-        )
+        logger.logPackSaveProgress(step: "Creating directories", details: packDirectory.path)
 
-        // Copy media files
+        do {
+            try FileManager.default.createDirectory(
+                at: mediaDirectory,
+                withIntermediateDirectories: true
+            )
+            logger.logFileOperation(operation: "Create directory", path: mediaDirectory.path, success: true)
+        } catch {
+            logger.logPackSaveError(error, step: "Create media directory")
+            throw PackSaveError.directoryCreationFailed(path: mediaDirectory.path, underlying: error)
+        }
+
+        do {
+            try FileManager.default.createDirectory(
+                at: artifactsDirectory,
+                withIntermediateDirectories: true
+            )
+            logger.logFileOperation(operation: "Create directory", path: artifactsDirectory.path, success: true)
+        } catch {
+            logger.logPackSaveError(error, step: "Create artifacts directory")
+            throw PackSaveError.directoryCreationFailed(path: artifactsDirectory.path, underlying: error)
+        }
+
+        // MARK: - Copy Media Files
+        logger.logPackSaveProgress(step: "Copying media files", details: "\(mediaFiles.count) files")
         var savedMediaFiles: [MediaFile] = []
 
-        for mediaURL in mediaFiles {
+        for (index, mediaURL) in mediaFiles.enumerated() {
             let filename = mediaURL.lastPathComponent
             let destinationURL = mediaDirectory.appendingPathComponent(filename)
 
-            try FileManager.default.copyItem(at: mediaURL, to: destinationURL)
+            logger.debug("Copying file \(index + 1)/\(mediaFiles.count): \(filename)", context: "PackSave")
 
-            let mediaType = determineMediaType(for: mediaURL)
-            savedMediaFiles.append(MediaFile(filename: filename, type: mediaType))
+            do {
+                // Handle duplicate filenames
+                var finalDestination = destinationURL
+                var counter = 1
+                while FileManager.default.fileExists(atPath: finalDestination.path) {
+                    let nameWithoutExt = mediaURL.deletingPathExtension().lastPathComponent
+                    let ext = mediaURL.pathExtension
+                    let newFilename = "\(nameWithoutExt)_\(counter).\(ext)"
+                    finalDestination = mediaDirectory.appendingPathComponent(newFilename)
+                    counter += 1
+                    logger.debug("Duplicate found, using: \(newFilename)", context: "PackSave")
+                }
+
+                try FileManager.default.copyItem(at: mediaURL, to: finalDestination)
+                logger.logFileOperation(operation: "Copy file", path: finalDestination.path, success: true)
+
+                let mediaType = determineMediaType(for: mediaURL)
+                savedMediaFiles.append(MediaFile(filename: finalDestination.lastPathComponent, type: mediaType))
+            } catch {
+                logger.logPackSaveError(error, step: "Copy file: \(filename)")
+                // Clean up on failure
+                try? FileManager.default.removeItem(at: packDirectory)
+                throw PackSaveError.fileCopyFailed(source: mediaURL, destination: destinationURL, underlying: error)
+            }
         }
 
-        // Create pack
+        // MARK: - Create and Save Manifest
+        logger.logPackSaveProgress(step: "Creating pack manifest")
+
         let pack = InspirationPack(
             id: packID,
-            name: name,
+            name: trimmedName,
             mediaFiles: savedMediaFiles,
             settings: settings
         )
 
-        // Save manifest
         let manifestURL = packDirectory.appendingPathComponent("manifest.json")
         let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
 
-        let manifestData = try encoder.encode(pack)
-        try manifestData.write(to: manifestURL)
+        let manifestData: Data
+        do {
+            manifestData = try encoder.encode(pack)
+            logger.debug("Manifest encoded: \(manifestData.count) bytes", context: "PackSave")
+        } catch {
+            logger.logPackSaveError(error, step: "Encode manifest")
+            try? FileManager.default.removeItem(at: packDirectory)
+            throw PackSaveError.manifestEncodingFailed(underlying: error)
+        }
+
+        do {
+            try manifestData.write(to: manifestURL)
+            logger.logFileOperation(operation: "Write manifest", path: manifestURL.path, success: true)
+        } catch {
+            logger.logPackSaveError(error, step: "Write manifest")
+            try? FileManager.default.removeItem(at: packDirectory)
+            throw PackSaveError.manifestWriteFailed(path: manifestURL.path, underlying: error)
+        }
 
         // TODO: Trigger preprocessing
         // await runPreprocessing(packDirectory: packDirectory, mediaFiles: savedMediaFiles)
 
+        logger.logPackSaveSuccess(packID: packID, path: packDirectory.path)
         return pack
     }
 
     func deletePack(id: UUID) throws {
+        logger.info("Deleting pack: \(id.uuidString)", context: "PackDelete")
         let packDirectory = Self.packsDirectory.appendingPathComponent(id.uuidString)
-        try FileManager.default.removeItem(at: packDirectory)
+
+        guard FileManager.default.fileExists(atPath: packDirectory.path) else {
+            logger.warning("Pack directory not found: \(packDirectory.path)", context: "PackDelete")
+            throw PackSaveError.packNotFound(id: id)
+        }
+
+        do {
+            try FileManager.default.removeItem(at: packDirectory)
+            logger.info("Pack deleted successfully: \(id.uuidString)", context: "PackDelete")
+        } catch {
+            logger.error("Failed to delete pack: \(id.uuidString)", error: error, context: "PackDelete")
+            throw error
+        }
     }
 
     func mediaURL(for media: MediaFile, in packID: UUID) -> URL? {

@@ -14,7 +14,11 @@ struct LoadPackModal: View {
     @State private var packs: [PackInfo] = []
     @State private var selectedPack: PackInfo?
     @State private var isLoading = false
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
+    @State private var errorSuggestion: String?
 
+    private let logger = DebugLogger.shared
     private let gridColumns = [
         GridItem(.adaptive(minimum: 200), spacing: 16)
     ]
@@ -105,6 +109,11 @@ struct LoadPackModal: View {
                     .stroke(AppColors.borderLight, lineWidth: 1)
             )
             .shadow(color: .black.opacity(0.5), radius: 20)
+            .alert("Load Failed", isPresented: $showErrorAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(errorMessage + (errorSuggestion.map { "\n\n\($0)" } ?? ""))
+            }
         }
         .onAppear {
             loadPacksList()
@@ -132,25 +141,41 @@ struct LoadPackModal: View {
     // MARK: - Actions
 
     private func loadPacksList() {
+        logger.debug("Loading packs list", context: "LoadPackModal")
         packs = packManager.listPacks()
+        logger.info("Found \(packs.count) saved packs", context: "LoadPackModal")
     }
 
     private func loadSelectedPack() {
         guard let pack = selectedPack else { return }
         isLoading = true
+        logger.info("User initiated pack load: '\(pack.name)'", context: "LoadPackModal")
 
         Task {
             do {
                 let loadedPack = try await packManager.loadPack(id: pack.id)
+                logger.info("Pack loaded successfully: '\(loadedPack.name)'", context: "LoadPackModal")
+
                 await MainActor.run {
                     appState.currentPack = loadedPack
                     appState.loadPackSettings(loadedPack.settings)
                     appState.showLoadPackModal = false
                     isLoading = false
                 }
-            } catch {
-                print("Error loading pack: \(error)")
+            } catch let error as PackSaveError {
+                logger.error("Pack load failed with PackSaveError", error: error, context: "LoadPackModal")
                 await MainActor.run {
+                    errorMessage = error.errorDescription ?? "Unknown error occurred"
+                    errorSuggestion = error.recoverySuggestion
+                    showErrorAlert = true
+                    isLoading = false
+                }
+            } catch {
+                logger.error("Pack load failed with unexpected error", error: error, context: "LoadPackModal")
+                await MainActor.run {
+                    errorMessage = "Failed to load pack: \(error.localizedDescription)"
+                    errorSuggestion = "The pack may be corrupted. Try deleting and recreating it."
+                    showErrorAlert = true
                     isLoading = false
                 }
             }
@@ -159,6 +184,7 @@ struct LoadPackModal: View {
 
     private func deletePack() {
         guard let pack = selectedPack else { return }
+        logger.info("User initiated pack delete: '\(pack.name)'", context: "LoadPackModal")
 
         // Show confirmation alert
         let alert = NSAlert()
@@ -171,10 +197,19 @@ struct LoadPackModal: View {
         if alert.runModal() == .alertFirstButtonReturn {
             do {
                 try packManager.deletePack(id: pack.id)
+                logger.info("Pack deleted successfully: '\(pack.name)'", context: "LoadPackModal")
                 selectedPack = nil
                 loadPacksList()
+            } catch let error as PackSaveError {
+                logger.error("Pack delete failed with PackSaveError", error: error, context: "LoadPackModal")
+                errorMessage = error.errorDescription ?? "Unknown error occurred"
+                errorSuggestion = error.recoverySuggestion
+                showErrorAlert = true
             } catch {
-                print("Error deleting pack: \(error)")
+                logger.error("Pack delete failed with unexpected error", error: error, context: "LoadPackModal")
+                errorMessage = "Failed to delete pack: \(error.localizedDescription)"
+                errorSuggestion = nil
+                showErrorAlert = true
             }
         }
     }

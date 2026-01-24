@@ -102,14 +102,21 @@ class PackManager: ObservableObject {
     // MARK: - Pack Management
 
     func listPacks() -> [PackInfo] {
+        logger.debug("Listing packs from: \(Self.packsDirectory.path)", context: "PackList")
+
         guard let contents = try? FileManager.default.contentsOfDirectory(
             at: Self.packsDirectory,
             includingPropertiesForKeys: [.isDirectoryKey]
         ) else {
+            logger.warning("Could not read packs directory", context: "PackList")
             return []
         }
 
+        logger.debug("Found \(contents.count) items in packs directory", context: "PackList")
+
         var packs: [PackInfo] = []
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
 
         for packURL in contents {
             guard (try? packURL.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true else {
@@ -117,27 +124,36 @@ class PackManager: ObservableObject {
             }
 
             let manifestURL = packURL.appendingPathComponent("manifest.json")
-            guard let data = try? Data(contentsOf: manifestURL),
-                  let pack = try? JSONDecoder().decode(InspirationPack.self, from: data) else {
+
+            guard let data = try? Data(contentsOf: manifestURL) else {
+                logger.warning("Could not read manifest at: \(manifestURL.path)", context: "PackList")
                 continue
             }
 
-            let mediaDirectory = packURL.appendingPathComponent("media")
-            let thumbnailURLs = pack.mediaFiles.prefix(3).compactMap { file -> URL? in
-                return mediaDirectory.appendingPathComponent(file.filename)
+            do {
+                let pack = try decoder.decode(InspirationPack.self, from: data)
+
+                let mediaDirectory = packURL.appendingPathComponent("media")
+                let thumbnailURLs = pack.mediaFiles.prefix(3).compactMap { file -> URL? in
+                    return mediaDirectory.appendingPathComponent(file.filename)
+                }
+
+                let packInfo = PackInfo(
+                    id: pack.id,
+                    name: pack.name,
+                    createdAt: pack.createdAt,
+                    mediaCount: pack.mediaFiles.count,
+                    thumbnailURLs: thumbnailURLs
+                )
+
+                packs.append(packInfo)
+                logger.debug("Loaded pack: '\(pack.name)' with \(pack.mediaFiles.count) files", context: "PackList")
+            } catch {
+                logger.error("Failed to decode manifest at \(manifestURL.path)", error: error, context: "PackList")
             }
-
-            let packInfo = PackInfo(
-                id: pack.id,
-                name: pack.name,
-                createdAt: pack.createdAt,
-                mediaCount: pack.mediaFiles.count,
-                thumbnailURLs: thumbnailURLs
-            )
-
-            packs.append(packInfo)
         }
 
+        logger.info("Listed \(packs.count) packs", context: "PackList")
         return packs.sorted { $0.createdAt > $1.createdAt }
     }
 

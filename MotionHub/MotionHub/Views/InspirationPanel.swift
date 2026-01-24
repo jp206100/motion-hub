@@ -197,6 +197,7 @@ struct InspirationPanel: View {
 
         // Create or update the current pack
         let packName = appState.currentPack?.name ?? "Untitled Pack"
+        let existingPackID = appState.currentPack?.id
 
         // Save pack to disk (for file references)
         Task {
@@ -205,7 +206,8 @@ struct InspirationPanel: View {
                 let savedPack = try await packManager.savePack(
                     name: packName,
                     mediaFiles: urls,
-                    settings: appState.getCurrentSettings()
+                    settings: appState.getCurrentSettings(),
+                    existingPackID: existingPackID
                 )
 
                 // Stop accessing security-scoped resources

@@ -93,8 +93,8 @@ class PackManager: ObservableObject {
         return pack
     }
 
-    func savePack(name: String, mediaFiles: [URL], settings: PackSettings) async throws -> InspirationPack {
-        let packID = UUID()
+    func savePack(name: String, mediaFiles: [URL], settings: PackSettings, existingPackID: UUID? = nil) async throws -> InspirationPack {
+        let packID = existingPackID ?? UUID()
         let packDirectory = Self.packsDirectory.appendingPathComponent(packID.uuidString)
         let mediaDirectory = packDirectory.appendingPathComponent("media")
         let artifactsDirectory = packDirectory.appendingPathComponent("artifacts")
@@ -109,17 +109,34 @@ class PackManager: ObservableObject {
             withIntermediateDirectories: true
         )
 
-        // Copy media files
+        // Load existing media files if updating
         var savedMediaFiles: [MediaFile] = []
+        if let existingPackID = existingPackID {
+            do {
+                let existingPack = try await loadPack(id: existingPackID)
+                savedMediaFiles = existingPack.mediaFiles
+                print("📦 Loaded \(savedMediaFiles.count) existing media files")
+            } catch {
+                print("⚠️ Could not load existing pack, starting fresh: \(error)")
+            }
+        }
 
+        // Copy new media files
         for mediaURL in mediaFiles {
             let filename = mediaURL.lastPathComponent
             let destinationURL = mediaDirectory.appendingPathComponent(filename)
+
+            // Skip if file already exists
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                print("⏭️ Skipping existing file: \(filename)")
+                continue
+            }
 
             try FileManager.default.copyItem(at: mediaURL, to: destinationURL)
 
             let mediaType = determineMediaType(for: mediaURL)
             savedMediaFiles.append(MediaFile(filename: filename, type: mediaType))
+            print("✅ Added new file: \(filename)")
         }
 
         // Create pack

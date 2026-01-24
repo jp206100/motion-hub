@@ -184,8 +184,69 @@ struct InspirationPanel: View {
     }
 
     private func processMediaFiles(_ urls: [URL]) {
-        // TODO: Trigger preprocessing
+        guard !urls.isEmpty else { return }
+
         print("Processing \(urls.count) media files...")
-        // This will be implemented when we add PreprocessingManager
+
+        // Create media files from URLs
+        var mediaFiles: [MediaFile] = []
+        for url in urls {
+            let filename = url.lastPathComponent
+            let type: MediaType
+
+            let ext = url.pathExtension.lowercased()
+            switch ext {
+            case "jpg", "jpeg", "png", "heic", "tiff", "bmp":
+                type = .image
+            case "gif":
+                type = .gif
+            case "mp4", "mov", "m4v", "avi", "mkv":
+                type = .video
+            default:
+                continue // Skip unsupported files
+            }
+
+            mediaFiles.append(MediaFile(filename: filename, type: type))
+        }
+
+        guard !mediaFiles.isEmpty else {
+            print("No valid media files found")
+            return
+        }
+
+        // Create or update the current pack
+        let packName = appState.currentPack?.name ?? "Untitled Pack"
+        let existingMedia = appState.currentPack?.mediaFiles ?? []
+        let allMedia = existingMedia + mediaFiles
+
+        // Create a temporary pack with the media files
+        let pack = InspirationPack(
+            name: packName,
+            mediaFiles: allMedia,
+            settings: appState.getCurrentSettings()
+        )
+
+        // Save pack to disk (for file references)
+        Task {
+            do {
+                let savedPack = try await packManager.savePack(
+                    name: packName,
+                    mediaFiles: urls,
+                    settings: appState.getCurrentSettings()
+                )
+
+                // Update app state on main thread
+                await MainActor.run {
+                    appState.currentPack = savedPack
+                    print("✅ Pack saved with \(savedPack.mediaFiles.count) media files")
+                }
+
+                // TODO: Trigger preprocessing
+                // This will be implemented when we add PreprocessingManager
+
+            } catch {
+                print("❌ Error saving pack: \(error)")
+            }
+        }
     }
 }

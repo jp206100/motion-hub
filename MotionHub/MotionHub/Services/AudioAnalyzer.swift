@@ -152,10 +152,20 @@ class AudioAnalyzer: ObservableObject {
             mElement: kAudioObjectPropertyElementMain
         )
 
-        var dataSize: UInt32 = UInt32(MemoryLayout<CFString>.size)
-        var deviceName: CFString = "" as CFString
+        var dataSize: UInt32 = 0
+        var deviceName: CFString?
 
-        let status = AudioObjectGetPropertyData(
+        var status = AudioObjectGetPropertyDataSize(
+            deviceID,
+            &propertyAddress,
+            0,
+            nil,
+            &dataSize
+        )
+
+        guard status == noErr else { return nil }
+
+        status = AudioObjectGetPropertyData(
             deviceID,
             &propertyAddress,
             0,
@@ -164,11 +174,11 @@ class AudioAnalyzer: ObservableObject {
             &deviceName
         )
 
-        guard status == noErr else { return nil }
+        guard status == noErr, let name = deviceName else { return nil }
 
         return AudioDevice(
             id: deviceID,
-            name: deviceName as String,
+            name: name as String,
             uid: "\(deviceID)"
         )
     }
@@ -237,7 +247,7 @@ class AudioAnalyzer: ObservableObject {
         // Perform FFT
         var realPart = [Float](repeating: 0, count: fftSize)
         var imagPart = [Float](repeating: 0, count: fftSize)
-        var zeroImagInput = [Float](repeating: 0, count: fftSize)
+        let zeroImagInput = [Float](repeating: 0, count: fftSize)
 
         windowedSamples.withUnsafeBufferPointer { samplesPtr in
             zeroImagInput.withUnsafeBufferPointer { zeroImagPtr in

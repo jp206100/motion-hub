@@ -154,21 +154,26 @@ struct InspirationPanel: View {
     // MARK: - File Handling
 
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
-        var urls: [URL] = []
+        let group = DispatchGroup()
+        var loadedURLs: [URL] = []
 
         for provider in providers {
+            group.enter()
             _ = provider.loadDataRepresentation(for: .fileURL) { data, error in
+                defer { group.leave() }
                 if let data = data,
                    let path = String(data: data, encoding: .utf8),
                    let url = URL(string: path) {
-                    urls.append(url)
+                    DispatchQueue.main.async {
+                        loadedURLs.append(url)
+                    }
                 }
             }
         }
 
-        // Process URLs after a short delay to ensure all are loaded
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            processMediaFiles(urls)
+        // Process URLs after all are loaded
+        group.notify(queue: .main) {
+            self.processMediaFiles(loadedURLs)
         }
 
         return true

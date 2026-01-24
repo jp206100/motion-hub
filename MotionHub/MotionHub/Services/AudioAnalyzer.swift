@@ -152,33 +152,25 @@ class AudioAnalyzer: ObservableObject {
             mElement: kAudioObjectPropertyElementMain
         )
 
-        var dataSize: UInt32 = 0
-        var deviceName: CFString?
+        var name: Unmanaged<CFString>?
+        var dataSize = UInt32(MemoryLayout<Unmanaged<CFString>>.size)
 
-        var status = AudioObjectGetPropertyDataSize(
-            deviceID,
-            &propertyAddress,
-            0,
-            nil,
-            &dataSize
-        )
-
-        guard status == noErr else { return nil }
-
-        status = AudioObjectGetPropertyData(
+        let status = AudioObjectGetPropertyData(
             deviceID,
             &propertyAddress,
             0,
             nil,
             &dataSize,
-            &deviceName
+            &name
         )
 
-        guard status == noErr, let name = deviceName else { return nil }
+        guard status == noErr, let deviceName = name?.takeRetainedValue() as String? else {
+            return nil
+        }
 
         return AudioDevice(
             id: deviceID,
-            name: name as String,
+            name: deviceName,
             uid: "\(deviceID)"
         )
     }

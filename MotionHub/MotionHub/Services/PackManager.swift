@@ -84,7 +84,10 @@ class PackManager: ObservableObject {
         let manifestURL = packDirectory.appendingPathComponent("manifest.json")
 
         let data = try Data(contentsOf: manifestURL)
-        let pack = try JSONDecoder().decode(InspirationPack.self, from: data)
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let pack = try decoder.decode(InspirationPack.self, from: data)
 
         // TODO: Load extracted artifacts
         // let artifactsURL = packDirectory.appendingPathComponent("artifacts/artifacts.json")

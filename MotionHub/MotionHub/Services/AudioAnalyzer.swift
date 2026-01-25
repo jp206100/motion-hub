@@ -16,15 +16,16 @@ class AudioAnalyzer: ObservableObject {
     @Published var levels: AudioLevels = .zero
     @Published var availableDevices: [AudioDevice] = []
     @Published var selectedDevice: AudioDevice?
+    @Published var isAudioAvailable: Bool = false
 
     // MARK: - Configuration
     private var sampleRate: Double = 44100     // Will be updated to match hardware
     private let bufferSize: Int = 2048          // ~46ms latency at 44.1kHz
     private let fftSize: Int = 2048
 
-    // MARK: - Audio Engine
-    private var audioEngine: AVAudioEngine
-    private var inputNode: AVAudioInputNode
+    // MARK: - Audio Engine (optional - may not be available)
+    private var audioEngine: AVAudioEngine?
+    private var inputNode: AVAudioInputNode?
 
     // MARK: - FFT Setup
     private var fftSetup: vDSP_DFT_Setup?
@@ -37,11 +38,9 @@ class AudioAnalyzer: ObservableObject {
 
     // MARK: - State
     private var isRunning = false
+    private var isSetupComplete = false
 
     init() {
-        audioEngine = AVAudioEngine()
-        inputNode = audioEngine.inputNode
-
         // Create Hanning window
         window = [Float](repeating: 0, count: fftSize)
         magnitudes = [Float](repeating: 0, count: fftSize / 2)
@@ -53,6 +52,29 @@ class AudioAnalyzer: ObservableObject {
             vDSP_Length(fftSize),
             vDSP_DFT_Direction.FORWARD
         )
+
+        // Defer audio hardware initialization to avoid blocking app launch
+        DispatchQueue.main.async { [weak self] in
+            self?.initializeAudioEngine()
+        }
+    }
+
+    private func initializeAudioEngine() {
+        // Initialize audio engine - this may fail if no audio hardware is available
+        let engine = AVAudioEngine()
+        let input = engine.inputNode
+
+        // Check if input node is valid by checking the format
+        let hardwareFormat = input.outputFormat(forBus: 0)
+        guard hardwareFormat.sampleRate > 0 && hardwareFormat.channelCount > 0 else {
+            print("Audio input not available - no valid hardware format")
+            loadAvailableDevices()
+            return
+        }
+
+        self.audioEngine = engine
+        self.inputNode = input
+        self.isAudioAvailable = true
 
         setupAudioEngine()
         loadAvailableDevices()
@@ -68,6 +90,11 @@ class AudioAnalyzer: ObservableObject {
     // MARK: - Setup
 
     private func setupAudioEngine() {
+        guard let inputNode = inputNode else {
+            print("Cannot setup audio engine - input node not available")
+            return
+        }
+
         // Use the input node's output format to match hardware sample rate
         let hardwareFormat = inputNode.outputFormat(forBus: 0)
 
@@ -98,6 +125,8 @@ class AudioAnalyzer: ObservableObject {
         ) { [weak self] buffer, _ in
             self?.processAudioBuffer(buffer)
         }
+
+        isSetupComplete = true
     }
 
     private func loadAvailableDevices() {
@@ -338,7 +367,7 @@ class AudioAnalyzer: ObservableObject {
     // MARK: - Public Methods
 
     func start() {
-        guard !isRunning else { return }
+        guard !isRunning, let audioEngine = audioEngine, isSetupComplete else { return }
 
         do {
             try audioEngine.start()
@@ -349,7 +378,7 @@ class AudioAnalyzer: ObservableObject {
     }
 
     func stop() {
-        guard isRunning else { return }
+        guard isRunning, let audioEngine = audioEngine else { return }
 
         audioEngine.stop()
         isRunning = false
@@ -364,17 +393,19 @@ class AudioAnalyzer: ObservableObject {
         // Stop current audio processing
         stop()
 
-        // Remove existing tap
-        inputNode.removeTap(onBus: 0)
+        // Remove existing tap if there is one
+        inputNode?.removeTap(onBus: 0)
 
         // Recreate audio engine
-        audioEngine = AVAudioEngine()
-        inputNode = audioEngine.inputNode
+        let engine = AVAudioEngine()
+        audioEngine = engine
+        inputNode = engine.inputNode
 
         // Configure the input node to use the selected device
         configureInputDevice(deviceID: device.id)
 
         // Reinstall the tap with the new input node
+        isSetupComplete = false
         setupAudioEngine()
 
         // Restart audio processing
@@ -385,7 +416,8 @@ class AudioAnalyzer: ObservableObject {
     #if os(macOS)
     private func configureInputDevice(deviceID: AudioDeviceID) {
         // Get the underlying audio unit from the input node
-        guard let audioUnit = inputNode.audioUnit else {
+        guard let inputNode = inputNode,
+              let audioUnit = inputNode.audioUnit else {
             print("Failed to get audio unit from input node")
             return
         }

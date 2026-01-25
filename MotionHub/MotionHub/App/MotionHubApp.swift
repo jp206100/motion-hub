@@ -11,13 +11,20 @@ import SwiftUI
 @main
 struct MotionHubApp: App {
     @StateObject private var appState = AppState()
-    @StateObject private var audioAnalyzer = AudioAnalyzer()
-    @StateObject private var midiHandler = MIDIHandler()
     @StateObject private var packManager = PackManager()
 
+    // Lazy initialization for potentially problematic services
+    @StateObject private var audioAnalyzer = AudioAnalyzer()
+    @StateObject private var midiHandler = MIDIHandler()
+
     init() {
+        // Print to confirm init is running
+        print("MotionHubApp init starting...")
+
         // Set up app directories
         PackManager.setupApplicationDirectories()
+
+        print("MotionHubApp init complete")
     }
 
     var body: some Scene {
@@ -28,6 +35,9 @@ struct MotionHubApp: App {
                 .environmentObject(midiHandler)
                 .environmentObject(packManager)
                 .preferredColorScheme(.dark)
+                .onAppear {
+                    print("ContentView appeared!")
+                }
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)

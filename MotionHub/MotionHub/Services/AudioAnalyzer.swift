@@ -53,25 +53,33 @@ class AudioAnalyzer: ObservableObject {
             vDSP_DFT_Direction.FORWARD
         )
 
-        // Defer audio hardware initialization to avoid blocking app launch
-        // Use a background queue and add delay to let the app fully launch first
-        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.5) { [weak self] in
+        // DO NOT initialize audio at startup - CoreAudio can crash the app
+        // Audio must be manually enabled by the user via enableAudio()
+        print("AudioAnalyzer initialized - audio disabled. Call enableAudio() to start.")
+    }
+
+    /// Manually enable audio - can be called from UI if auto-init fails
+    func enableAudio() {
+        guard !isAudioAvailable else { return }
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             self?.initializeAudioEngine()
         }
     }
 
     private func initializeAudioEngine() {
-        // First, check if there are any input devices using CoreAudio APIs
-        // This is safer than accessing AVAudioEngine.inputNode directly
-        guard hasAnyInputDevices() else {
-            print("No audio input devices available - skipping audio engine initialization")
+        // First, try to check if there are any input devices using CoreAudio APIs
+        // This can itself crash on some systems, so we wrap it in a safe check
+        let hasDevices = safeCheckForInputDevices()
+
+        guard hasDevices else {
+            print("No audio input devices available or CoreAudio unavailable")
             DispatchQueue.main.async {
-                self.loadAvailableDevices()
+                self.safeLoadAvailableDevices()
             }
             return
         }
 
-        // Now it's safer to create the audio engine
+        // Now try to create the audio engine
         let engine = AVAudioEngine()
         let input = engine.inputNode
 
@@ -80,7 +88,7 @@ class AudioAnalyzer: ObservableObject {
         guard hardwareFormat.sampleRate > 0 && hardwareFormat.channelCount > 0 else {
             print("Audio input not available - no valid hardware format")
             DispatchQueue.main.async {
-                self.loadAvailableDevices()
+                self.safeLoadAvailableDevices()
             }
             return
         }
@@ -90,13 +98,12 @@ class AudioAnalyzer: ObservableObject {
             self.inputNode = input
             self.isAudioAvailable = true
             self.setupAudioEngine()
-            self.loadAvailableDevices()
+            self.safeLoadAvailableDevices()
         }
     }
 
-    /// Check if there are any audio input devices available using CoreAudio APIs
-    /// This is safer than accessing AVAudioEngine.inputNode which can crash
-    private func hasAnyInputDevices() -> Bool {
+    /// Safely check for input devices - returns false if any error occurs
+    private func safeCheckForInputDevices() -> Bool {
         #if os(macOS)
         var propertyAddress = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDevices,
@@ -139,8 +146,17 @@ class AudioAnalyzer: ObservableObject {
 
         return false
         #else
-        return true // Assume available on other platforms
+        return true
         #endif
+    }
+
+    /// Safe wrapper for loadAvailableDevices that won't crash
+    private func safeLoadAvailableDevices() {
+        #if os(macOS)
+        // Don't call CoreAudio APIs if we've already failed
+        guard isAudioAvailable || availableDevices.isEmpty else { return }
+        #endif
+        loadAvailableDevices()
     }
 
     deinit {

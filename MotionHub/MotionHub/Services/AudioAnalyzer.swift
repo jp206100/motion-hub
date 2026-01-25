@@ -9,6 +9,7 @@ import Foundation
 import AVFoundation
 import Accelerate
 import Combine
+import AudioToolbox
 
 class AudioAnalyzer: ObservableObject {
     // MARK: - Published Properties
@@ -346,14 +347,54 @@ class AudioAnalyzer: ObservableObject {
     }
 
     func selectInputDevice(_ device: AudioDevice) {
+        guard selectedDevice?.id != device.id else { return }
+
         selectedDevice = device
 
-        // Note: Changing the input device requires recreating the audio engine
-        // This is a simplified version - full implementation would handle device switching
+        #if os(macOS)
+        // Stop current audio processing
         stop()
-        // TODO: Implement device switching
+
+        // Remove existing tap
+        inputNode.removeTap(onBus: 0)
+
+        // Recreate audio engine
+        audioEngine = AVAudioEngine()
+        inputNode = audioEngine.inputNode
+
+        // Configure the input node to use the selected device
+        configureInputDevice(deviceID: device.id)
+
+        // Reinstall the tap with the new input node
+        setupAudioEngine()
+
+        // Restart audio processing
         start()
+        #endif
     }
+
+    #if os(macOS)
+    private func configureInputDevice(deviceID: AudioDeviceID) {
+        // Get the underlying audio unit from the input node
+        let audioUnit = inputNode.audioUnit!
+
+        var deviceID = deviceID
+
+        // Set the device for the audio unit's input
+        let status = AudioUnitSetProperty(
+            audioUnit,
+            kAudioOutputUnitProperty_CurrentDevice,
+            kAudioUnitScope_Global,
+            0,
+            &deviceID,
+            UInt32(MemoryLayout<AudioDeviceID>.size)
+        )
+
+        if status != noErr {
+            print("Failed to set audio input device: \(status)")
+        }
+    }
+    #endif
 }
 
 // MARK: - Audio Device

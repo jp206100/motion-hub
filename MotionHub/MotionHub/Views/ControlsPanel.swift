@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ControlsPanel: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var audioAnalyzer: AudioAnalyzer
 
     var body: some View {
         ScrollView {
@@ -168,6 +169,54 @@ struct ControlsPanel: View {
                 .textCase(.uppercase)
                 .tracking(0.5)
                 .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Audio Input Device
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Audio Input")
+                    .font(AppFonts.mono(size: 11))
+                    .foregroundColor(AppColors.textPrimary)
+
+                Menu {
+                    ForEach(audioAnalyzer.availableDevices) { device in
+                        Button(action: {
+                            audioAnalyzer.selectInputDevice(device)
+                        }) {
+                            HStack {
+                                Text(device.name)
+                                if audioAnalyzer.selectedDevice?.id == device.id {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+
+                    if audioAnalyzer.availableDevices.isEmpty {
+                        Text("No audio devices found")
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                } label: {
+                    HStack {
+                        Text(audioAnalyzer.selectedDevice?.name ?? "System Default")
+                            .font(AppFonts.mono(size: 11))
+                            .foregroundColor(AppColors.textPrimary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 10))
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(AppColors.backgroundSecondary)
+                    .cornerRadius(6)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(AppColors.border, lineWidth: 1)
+                    )
+                }
+                .menuStyle(.borderlessButton)
+            }
 
             // Target FPS
             VStack(alignment: .leading, spacing: 8) {

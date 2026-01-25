@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 import os.log
 
 /// Centralized logging for debugging pack save/load operations

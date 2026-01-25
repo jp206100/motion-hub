@@ -71,16 +71,25 @@ class AudioAnalyzer: ObservableObject {
         // Use the input node's output format to match hardware sample rate
         let hardwareFormat = inputNode.outputFormat(forBus: 0)
 
+        // Check if hardware format is valid (sample rate > 0 indicates valid audio input)
+        guard hardwareFormat.sampleRate > 0 else {
+            print("Audio input not available - no valid hardware format")
+            return
+        }
+
         // Update our sample rate to match the hardware
         sampleRate = hardwareFormat.sampleRate
 
         // Create a compatible mono format with the hardware's sample rate
-        let format = AVAudioFormat(
+        guard let format = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
             sampleRate: hardwareFormat.sampleRate,
             channels: 1,
             interleaved: false
-        )!
+        ) else {
+            print("Failed to create audio format for sample rate: \(hardwareFormat.sampleRate)")
+            return
+        }
 
         inputNode.installTap(
             onBus: 0,
@@ -376,7 +385,10 @@ class AudioAnalyzer: ObservableObject {
     #if os(macOS)
     private func configureInputDevice(deviceID: AudioDeviceID) {
         // Get the underlying audio unit from the input node
-        let audioUnit = inputNode.audioUnit!
+        guard let audioUnit = inputNode.audioUnit else {
+            print("Failed to get audio unit from input node")
+            return
+        }
 
         var deviceID = deviceID
 

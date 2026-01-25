@@ -208,7 +208,7 @@ struct ControlsPanel: View {
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
-                    .background(AppColors.backgroundSecondary)
+                    .background(AppColors.bgLight)
                     .cornerRadius(6)
                     .overlay(
                         RoundedRectangle(cornerRadius: 6)

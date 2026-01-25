@@ -54,13 +54,24 @@ class AudioAnalyzer: ObservableObject {
         )
 
         // Defer audio hardware initialization to avoid blocking app launch
-        DispatchQueue.main.async { [weak self] in
+        // Use a background queue and add delay to let the app fully launch first
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.initializeAudioEngine()
         }
     }
 
     private func initializeAudioEngine() {
-        // Initialize audio engine - this may fail if no audio hardware is available
+        // First, check if there are any input devices using CoreAudio APIs
+        // This is safer than accessing AVAudioEngine.inputNode directly
+        guard hasAnyInputDevices() else {
+            print("No audio input devices available - skipping audio engine initialization")
+            DispatchQueue.main.async {
+                self.loadAvailableDevices()
+            }
+            return
+        }
+
+        // Now it's safer to create the audio engine
         let engine = AVAudioEngine()
         let input = engine.inputNode
 
@@ -68,16 +79,68 @@ class AudioAnalyzer: ObservableObject {
         let hardwareFormat = input.outputFormat(forBus: 0)
         guard hardwareFormat.sampleRate > 0 && hardwareFormat.channelCount > 0 else {
             print("Audio input not available - no valid hardware format")
-            loadAvailableDevices()
+            DispatchQueue.main.async {
+                self.loadAvailableDevices()
+            }
             return
         }
 
-        self.audioEngine = engine
-        self.inputNode = input
-        self.isAudioAvailable = true
+        DispatchQueue.main.async {
+            self.audioEngine = engine
+            self.inputNode = input
+            self.isAudioAvailable = true
+            self.setupAudioEngine()
+            self.loadAvailableDevices()
+        }
+    }
 
-        setupAudioEngine()
-        loadAvailableDevices()
+    /// Check if there are any audio input devices available using CoreAudio APIs
+    /// This is safer than accessing AVAudioEngine.inputNode which can crash
+    private func hasAnyInputDevices() -> Bool {
+        #if os(macOS)
+        var propertyAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDevices,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+
+        var dataSize: UInt32 = 0
+        var status = AudioObjectGetPropertyDataSize(
+            AudioObjectID(kAudioObjectSystemObject),
+            &propertyAddress,
+            0,
+            nil,
+            &dataSize
+        )
+
+        guard status == noErr, dataSize > 0 else { return false }
+
+        let deviceCount = Int(dataSize) / MemoryLayout<AudioDeviceID>.size
+        guard deviceCount > 0 else { return false }
+
+        var deviceIDs = [AudioDeviceID](repeating: 0, count: deviceCount)
+        status = AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &propertyAddress,
+            0,
+            nil,
+            &dataSize,
+            &deviceIDs
+        )
+
+        guard status == noErr else { return false }
+
+        // Check if any device has input channels
+        for deviceID in deviceIDs {
+            if hasInputChannels(deviceID: deviceID) {
+                return true
+            }
+        }
+
+        return false
+        #else
+        return true // Assume available on other platforms
+        #endif
     }
 
     deinit {
@@ -396,20 +459,28 @@ class AudioAnalyzer: ObservableObject {
         // Remove existing tap if there is one
         inputNode?.removeTap(onBus: 0)
 
-        // Recreate audio engine
-        let engine = AVAudioEngine()
-        audioEngine = engine
-        inputNode = engine.inputNode
+        // Perform engine recreation on background queue to avoid blocking UI
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
 
-        // Configure the input node to use the selected device
-        configureInputDevice(deviceID: device.id)
+            // Recreate audio engine
+            let engine = AVAudioEngine()
 
-        // Reinstall the tap with the new input node
-        isSetupComplete = false
-        setupAudioEngine()
+            DispatchQueue.main.async {
+                self.audioEngine = engine
+                self.inputNode = engine.inputNode
 
-        // Restart audio processing
-        start()
+                // Configure the input node to use the selected device
+                self.configureInputDevice(deviceID: device.id)
+
+                // Reinstall the tap with the new input node
+                self.isSetupComplete = false
+                self.setupAudioEngine()
+
+                // Restart audio processing
+                self.start()
+            }
+        }
         #endif
     }
 

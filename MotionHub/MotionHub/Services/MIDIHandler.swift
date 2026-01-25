@@ -68,7 +68,7 @@ class MIDIHandler: ObservableObject {
         status = MIDIInputPortCreateWithProtocol(
             client,
             portName,
-            .midi1_0,
+            ._1_0,
             &port
         ) { [weak self] eventList, _ in
             self?.handleMIDIEventList(eventList)
@@ -223,7 +223,7 @@ struct MIDIEventListGenerator: Sequence, IteratorProtocol {
     private var remainingPackets: UInt32
 
     init(_ eventList: UnsafePointer<MIDIEventList>) {
-        currentPacket = eventList.pointee.packet.unsafePointer
+        currentPacket = withUnsafePointer(to: eventList.pointee.packet) { $0 }
         remainingPackets = eventList.pointee.numPackets
     }
 
@@ -250,19 +250,17 @@ struct MIDIEventListGenerator: Sequence, IteratorProtocol {
         }
 
         // Move to next packet
-        currentPacket = MIDIEventPacketNext(packet)?.unsafePointer
+        if remainingPackets > 0 {
+            currentPacket = UnsafePointer(MIDIEventPacketNext(packet.mutablePointer))
+        } else {
+            currentPacket = nil
+        }
 
         return bytes
     }
 }
 
 // MARK: - Extensions
-extension UnsafeMutablePointer where Pointee == MIDIEventPacket {
-    var unsafePointer: UnsafePointer<MIDIEventPacket> {
-        return UnsafePointer(self)
-    }
-}
-
 extension UnsafePointer where Pointee == MIDIEventPacket {
     var mutablePointer: UnsafeMutablePointer<MIDIEventPacket> {
         return UnsafeMutablePointer(mutating: self)

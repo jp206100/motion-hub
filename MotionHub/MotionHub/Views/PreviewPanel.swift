@@ -104,10 +104,17 @@ struct PreviewPanel: View {
 struct MetalPreviewView: NSViewRepresentable {
     func makeNSView(context: Context) -> MTKView {
         let mtkView = MTKView()
-        mtkView.device = MTLCreateSystemDefaultDevice()
-        mtkView.colorPixelFormat = .bgra8Unorm
-        mtkView.clearColor = MTLClearColor(red: 0.04, green: 0.04, blue: 0.04, alpha: 1.0)
-        mtkView.delegate = context.coordinator
+
+        // Safely get Metal device - may be nil on some systems
+        if let device = MTLCreateSystemDefaultDevice() {
+            mtkView.device = device
+            mtkView.colorPixelFormat = .bgra8Unorm
+            mtkView.clearColor = MTLClearColor(red: 0.04, green: 0.04, blue: 0.04, alpha: 1.0)
+            mtkView.delegate = context.coordinator
+        } else {
+            print("Metal is not available on this system")
+        }
+
         return mtkView
     }
 

@@ -34,8 +34,12 @@ class MIDIHandler: ObservableObject {
     }
 
     init() {
-        setupMIDI()
-        loadAvailableDevices()
+        // Defer MIDI setup to avoid potential startup crashes
+        // MIDI shares infrastructure with CoreAudio which may be unstable
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            self?.setupMIDI()
+            self?.loadAvailableDevices()
+        }
     }
 
     deinit {

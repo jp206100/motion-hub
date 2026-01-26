@@ -113,7 +113,24 @@ class AudioAnalyzer: ObservableObject {
 
     func refreshDevices() {
         DebugLogger.shared.info("Refreshing audio devices...", context: "Audio")
-        loadAvailableDevices()
+        // Re-check permission status first
+        let status = AVCaptureDevice.authorizationStatus(for: .audio)
+        DebugLogger.shared.info("Current permission status: \(status.rawValue)", context: "Audio")
+
+        if status == .authorized {
+            DispatchQueue.main.async {
+                self.permissionStatus = .granted
+            }
+            loadAvailableDevices()
+        } else if status == .notDetermined {
+            requestMicrophonePermission()
+        } else {
+            DispatchQueue.main.async {
+                self.permissionStatus = .denied
+            }
+            // Still try to load devices - Core Audio enumeration might work without permission
+            loadAvailableDevices()
+        }
     }
 
     deinit {
@@ -196,15 +213,21 @@ class AudioAnalyzer: ObservableObject {
 
         for deviceID in deviceIDs {
             if let device = getDeviceInfo(deviceID: deviceID) {
+                let hasInput = hasInputChannels(deviceID: deviceID)
+                DebugLogger.shared.debug("Device: \(device.name) (ID: \(device.id)) - hasInput: \(hasInput)", context: "Audio")
                 // Only include input devices
-                if hasInputChannels(deviceID: deviceID) {
-                    DebugLogger.shared.debug("Found input device: \(device.name) (ID: \(device.id))", context: "Audio")
+                if hasInput {
                     devices.append(device)
                 }
+            } else {
+                DebugLogger.shared.debug("Could not get info for device ID: \(deviceID)", context: "Audio")
             }
         }
 
         DebugLogger.shared.info("Total input devices found: \(devices.count)", context: "Audio")
+        if devices.isEmpty {
+            DebugLogger.shared.warning("No input devices found! Check microphone permissions.", context: "Audio")
+        }
 
         DispatchQueue.main.async {
             self.availableDevices = devices

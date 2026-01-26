@@ -74,10 +74,14 @@ class PackManager: ObservableObject {
 
     // MARK: - Directories
     static let applicationSupportDirectory: URL = {
-        let appSupport = FileManager.default.urls(
+        guard let appSupport = FileManager.default.urls(
             for: .applicationSupportDirectory,
             in: .userDomainMask
-        ).first!
+        ).first else {
+            // Fallback to home directory if application support is unavailable
+            return FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent(".MotionHub")
+        }
         return appSupport.appendingPathComponent("MotionHub")
     }()
 

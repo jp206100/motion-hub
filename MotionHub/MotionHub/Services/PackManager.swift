@@ -187,16 +187,153 @@ class PackManager: ObservableObject {
             logger.logPackLoadSuccess(name: pack.name)
             logger.debug("Pack contains \(pack.mediaFiles.count) media files", context: "PackLoad")
 
-            // TODO: Load extracted artifacts
-            // let artifactsURL = packDirectory.appendingPathComponent("artifacts/artifacts.json")
-            // Load and process artifacts
-
             return pack
         } catch {
             let loadError = PackSaveError.manifestLoadFailed(path: manifestURL.path, underlying: error)
             logger.logPackLoadError(loadError, packID: id)
             throw loadError
         }
+    }
+
+    func loadArtifacts(for packID: UUID) async -> ExtractedArtifacts? {
+        let packDirectory = Self.packsDirectory.appendingPathComponent(packID.uuidString)
+        let artifactsURL = packDirectory.appendingPathComponent("artifacts/artifacts.json")
+
+        guard FileManager.default.fileExists(atPath: artifactsURL.path) else {
+            logger.debug("No artifacts found at: \(artifactsURL.path)", context: "ArtifactLoad")
+            return nil
+        }
+
+        do {
+            let data = try Data(contentsOf: artifactsURL)
+            logger.debug("Artifacts data loaded: \(data.count) bytes", context: "ArtifactLoad")
+
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            decoder.dateDecodingStrategy = .iso8601
+
+            // Decode the Python-generated JSON format
+            let pythonArtifacts = try decoder.decode(PythonArtifactsFormat.self, from: data)
+
+            // Convert to Swift model
+            let artifacts = convertToExtractedArtifacts(from: pythonArtifacts, packID: packID)
+
+            logger.info("Loaded artifacts: \(artifacts.artifacts.colorPalettes.count) palettes, \(artifacts.artifacts.textures.count) textures", context: "ArtifactLoad")
+            return artifacts
+        } catch {
+            logger.error("Failed to load artifacts: \(error.localizedDescription)", error: error, context: "ArtifactLoad")
+            return nil
+        }
+    }
+
+    // MARK: - Python Artifacts Format
+    // Matches the JSON output from preprocessing/extract.py
+
+    private struct PythonArtifactsFormat: Codable {
+        let packId: String
+        let createdAt: String
+        let sourceMedia: [PythonSourceMedia]
+        let artifacts: PythonArtifacts
+
+        struct PythonSourceMedia: Codable {
+            let filename: String
+            let type: String
+        }
+
+        struct PythonArtifacts: Codable {
+            let colorPalettes: [PythonColorPalette]
+            let textures: [PythonTexture]
+            let motionPatterns: [PythonMotionPattern]
+            let videoClips: [PythonVideoClip]
+            let ghostedImages: [PythonGhostedImage]
+        }
+
+        struct PythonColorPalette: Codable {
+            let id: String
+            let colors: [String]
+            let source: String
+        }
+
+        struct PythonTexture: Codable {
+            let id: String
+            let filename: String
+            let source: String
+            let type: String
+        }
+
+        struct PythonMotionPattern: Codable {
+            let id: String
+            let filename: String
+            let source: String
+            let type: String
+        }
+
+        struct PythonVideoClip: Codable {
+            let id: String
+            let filename: String
+            let source: String
+            let duration: Double
+            let stretched: Bool
+        }
+
+        struct PythonGhostedImage: Codable {
+            let id: String
+            let filename: String
+            let source: String
+            let opacity: Double
+        }
+    }
+
+    private func convertToExtractedArtifacts(from python: PythonArtifactsFormat, packID: UUID) -> ExtractedArtifacts {
+        let colorPalettes = python.artifacts.colorPalettes.map { p in
+            ColorPalette(id: UUID(uuidString: p.id) ?? UUID(), colors: p.colors, source: p.source)
+        }
+
+        let textures = python.artifacts.textures.map { t in
+            let textureType: Texture.TextureType
+            switch t.type {
+            case "edge_map": textureType = .edgeMap
+            case "processed": textureType = .processed
+            case "posterized": textureType = .posterized
+            default: textureType = .noise
+            }
+            return Texture(id: UUID(uuidString: t.id) ?? UUID(), filename: t.filename, source: t.source, type: textureType)
+        }
+
+        let motionPatterns = python.artifacts.motionPatterns.map { m in
+            MotionPattern(id: UUID(uuidString: m.id) ?? UUID(), filename: m.filename, source: m.source, type: m.type)
+        }
+
+        let videoClips = python.artifacts.videoClips.map { v in
+            VideoClip(id: UUID(uuidString: v.id) ?? UUID(), filename: v.filename, source: v.source, duration: v.duration, stretched: v.stretched)
+        }
+
+        let ghostedImages = python.artifacts.ghostedImages.map { g in
+            GhostedImage(id: UUID(uuidString: g.id) ?? UUID(), filename: g.filename, source: g.source, opacity: g.opacity)
+        }
+
+        let sourceMedia = python.sourceMedia.map { m in
+            let mediaType: MediaType
+            switch m.type {
+            case "video": mediaType = .video
+            case "gif": mediaType = .gif
+            default: mediaType = .image
+            }
+            return MediaFile(filename: m.filename, type: mediaType)
+        }
+
+        return ExtractedArtifacts(
+            packId: packID,
+            createdAt: ISO8601DateFormatter().date(from: python.createdAt) ?? Date(),
+            sourceMedia: sourceMedia,
+            artifacts: ExtractedArtifacts.Artifacts(
+                colorPalettes: colorPalettes,
+                textures: textures,
+                motionPatterns: motionPatterns,
+                videoClips: videoClips,
+                ghostedImages: ghostedImages
+            )
+        )
     }
 
     func savePack(name: String, mediaFiles: [URL], settings: PackSettings, existingPackID: UUID? = nil) async throws -> InspirationPack {

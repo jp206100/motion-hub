@@ -50,6 +50,14 @@ struct ContentView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppColors.bgDarkest)
+        .onReceive(audioAnalyzer.$levels) { levels in
+            // Sync audio levels to appState for visual engine
+            appState.audioLevels = levels
+        }
+        .onAppear {
+            // Start audio analysis when view appears
+            audioAnalyzer.start()
+        }
     }
 }
 
@@ -60,6 +68,7 @@ struct ContentView_Previews: PreviewProvider {
             .environmentObject(AudioAnalyzer())
             .environmentObject(MIDIHandler())
             .environmentObject(PackManager())
+            .environmentObject(PreprocessingManager())
             .preferredColorScheme(.dark)
             .frame(width: 1400, height: 900)
     }

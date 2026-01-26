@@ -156,8 +156,15 @@ struct LoadPackModal: View {
                 let loadedPack = try await packManager.loadPack(id: pack.id)
                 logger.info("Pack loaded successfully: '\(loadedPack.name)'", context: "LoadPackModal")
 
+                // Also load any extracted artifacts
+                let artifacts = await packManager.loadArtifacts(for: pack.id)
+                if let artifacts = artifacts {
+                    logger.info("Loaded artifacts: \(artifacts.artifacts.textures.count) textures, \(artifacts.artifacts.colorPalettes.count) palettes", context: "LoadPackModal")
+                }
+
                 await MainActor.run {
                     appState.currentPack = loadedPack
+                    appState.extractedArtifacts = artifacts
                     appState.loadPackSettings(loadedPack.settings)
                     appState.showLoadPackModal = false
                     isLoading = false

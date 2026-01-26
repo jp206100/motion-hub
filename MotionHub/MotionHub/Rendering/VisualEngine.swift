@@ -177,8 +177,8 @@ class VisualEngine {
         let viewportSize = view.drawableSize
         uniforms.resolution = simd_float2(Float(viewportSize.width), Float(viewportSize.height))
 
-        // For now, just render a simple gradient using the post-process shader
-        if let pipeline = pipelineStates["postProcess"] {
+        // Render the base layer with procedural visuals
+        if let pipeline = pipelineStates["baseLayer"] {
             renderEncoder.setRenderPipelineState(pipeline)
 
             // Pass uniforms

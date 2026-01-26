@@ -11,6 +11,7 @@ import UniformTypeIdentifiers
 struct InspirationPanel: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var packManager: PackManager
+    @EnvironmentObject var preprocessingManager: PreprocessingManager
 
     @State private var isDraggingOver = false
     @State private var showingFilePicker = false
@@ -225,13 +226,33 @@ struct InspirationPanel: View {
                 // Update app state on main thread
                 await MainActor.run {
                     appState.currentPack = savedPack
+                    appState.isProcessingMedia = true
+                    appState.processingMessage = "Processing media..."
                     print("✅ Pack saved with \(savedPack.mediaFiles.count) media files")
                     print("   Pack ID: \(savedPack.id)")
                     print("   Media files: \(savedPack.mediaFiles.map { $0.filename }.joined(separator: ", "))")
                 }
 
-                // TODO: Trigger preprocessing
-                // This will be implemented when we add PreprocessingManager
+                // Trigger preprocessing to extract visual artifacts
+                let preprocessSuccess = await preprocessingManager.runPreprocessing(
+                    packID: savedPack.id,
+                    mediaFiles: urls
+                )
+
+                if preprocessSuccess {
+                    // Load the extracted artifacts
+                    if let artifacts = await packManager.loadArtifacts(for: savedPack.id) {
+                        await MainActor.run {
+                            appState.extractedArtifacts = artifacts
+                            print("✅ Loaded \(artifacts.artifacts.textures.count) textures, \(artifacts.artifacts.colorPalettes.count) palettes")
+                        }
+                    }
+                }
+
+                await MainActor.run {
+                    appState.isProcessingMedia = false
+                    appState.processingMessage = ""
+                }
 
             } catch {
                 print("❌ Error saving pack: \(error)")

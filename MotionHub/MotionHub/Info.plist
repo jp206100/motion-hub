@@ -30,7 +30,5 @@
 	<string>public.app-category.music</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
-	<key>NSMainStoryboardFile</key>
-	<string></string>
 </dict>
 </plist>

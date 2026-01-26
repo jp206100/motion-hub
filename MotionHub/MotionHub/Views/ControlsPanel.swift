@@ -172,9 +172,41 @@ struct ControlsPanel: View {
 
             // Audio Input Device
             VStack(alignment: .leading, spacing: 8) {
-                Text("Audio Input")
-                    .font(AppFonts.mono(size: 11))
-                    .foregroundColor(AppColors.textPrimary)
+                HStack {
+                    Text("Audio Input")
+                        .font(AppFonts.mono(size: 11))
+                        .foregroundColor(AppColors.textPrimary)
+                    Spacer()
+                    Button(action: {
+                        audioAnalyzer.refreshDevices()
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 10))
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Refresh audio devices")
+                }
+
+                // Permission status message
+                if audioAnalyzer.permissionStatus == .denied {
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.orange)
+                        Text("Microphone access required")
+                            .font(AppFonts.mono(size: 10))
+                            .foregroundColor(.orange)
+                    }
+                    Button("Open System Settings") {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                    .font(AppFonts.mono(size: 10))
+                    .buttonStyle(.plain)
+                    .foregroundColor(AppColors.accent)
+                }
 
                 Menu {
                     ForEach(audioAnalyzer.availableDevices) { device in
@@ -191,14 +223,30 @@ struct ControlsPanel: View {
                     }
 
                     if audioAnalyzer.availableDevices.isEmpty {
-                        Text("No audio devices found")
-                            .foregroundColor(AppColors.textSecondary)
+                        if audioAnalyzer.permissionStatus == .denied {
+                            Text("Grant microphone permission to see devices")
+                                .foregroundColor(AppColors.textSecondary)
+                        } else {
+                            Text("No audio input devices found")
+                                .foregroundColor(AppColors.textSecondary)
+                        }
+                    }
+
+                    Divider()
+
+                    Button(action: {
+                        audioAnalyzer.refreshDevices()
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.clockwise")
+                            Text("Refresh Devices")
+                        }
                     }
                 } label: {
                     HStack {
-                        Text(audioAnalyzer.selectedDevice?.name ?? "System Default")
+                        Text(audioAnalyzer.selectedDevice?.name ?? "Select Audio Input")
                             .font(AppFonts.mono(size: 11))
-                            .foregroundColor(AppColors.textPrimary)
+                            .foregroundColor(audioAnalyzer.selectedDevice != nil ? AppColors.textPrimary : AppColors.textSecondary)
                             .lineLimit(1)
                             .truncationMode(.tail)
                         Spacer()

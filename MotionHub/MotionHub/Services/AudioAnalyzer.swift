@@ -16,6 +16,14 @@ class AudioAnalyzer: ObservableObject {
     @Published var levels: AudioLevels = .zero
     @Published var availableDevices: [AudioDevice] = []
     @Published var selectedDevice: AudioDevice?
+    @Published var permissionStatus: PermissionStatus = .unknown
+
+    enum PermissionStatus {
+        case unknown
+        case granted
+        case denied
+        case restricted
+    }
 
     // MARK: - Configuration
     private var sampleRate: Double = 44100     // Will be updated to match hardware
@@ -54,7 +62,57 @@ class AudioAnalyzer: ObservableObject {
             vDSP_DFT_Direction.FORWARD
         )
 
-        setupAudioEngine()
+        // Request permission before loading devices
+        requestMicrophonePermission()
+    }
+
+    // MARK: - Permission Handling
+
+    func requestMicrophonePermission() {
+        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        case .authorized:
+            DebugLogger.shared.info("Microphone permission already granted", context: "Audio")
+            DispatchQueue.main.async {
+                self.permissionStatus = .granted
+            }
+            setupAudioEngine()
+            loadAvailableDevices()
+
+        case .notDetermined:
+            DebugLogger.shared.info("Requesting microphone permission...", context: "Audio")
+            AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
+                DispatchQueue.main.async {
+                    if granted {
+                        DebugLogger.shared.info("Microphone permission granted", context: "Audio")
+                        self?.permissionStatus = .granted
+                        self?.setupAudioEngine()
+                        self?.loadAvailableDevices()
+                    } else {
+                        DebugLogger.shared.warning("Microphone permission denied", context: "Audio")
+                        self?.permissionStatus = .denied
+                    }
+                }
+            }
+
+        case .denied:
+            DebugLogger.shared.warning("Microphone permission denied - user must enable in System Settings", context: "Audio")
+            DispatchQueue.main.async {
+                self.permissionStatus = .denied
+            }
+
+        case .restricted:
+            DebugLogger.shared.warning("Microphone permission restricted", context: "Audio")
+            DispatchQueue.main.async {
+                self.permissionStatus = .restricted
+            }
+
+        @unknown default:
+            DebugLogger.shared.warning("Unknown microphone permission status", context: "Audio")
+        }
+    }
+
+    func refreshDevices() {
+        DebugLogger.shared.info("Refreshing audio devices...", context: "Audio")
         loadAvailableDevices()
     }
 
@@ -93,6 +151,8 @@ class AudioAnalyzer: ObservableObject {
 
     private func loadAvailableDevices() {
         #if os(macOS)
+        DebugLogger.shared.info("Loading available audio devices...", context: "Audio")
+
         var propertyAddress = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDevices,
             mScope: kAudioObjectPropertyScopeGlobal,
@@ -108,9 +168,14 @@ class AudioAnalyzer: ObservableObject {
             &dataSize
         )
 
-        guard status == noErr else { return }
+        guard status == noErr else {
+            DebugLogger.shared.error("Failed to get device list size: OSStatus \(status)", context: "Audio")
+            return
+        }
 
         let deviceCount = Int(dataSize) / MemoryLayout<AudioDeviceID>.size
+        DebugLogger.shared.debug("Found \(deviceCount) total audio devices", context: "Audio")
+
         var deviceIDs = [AudioDeviceID](repeating: 0, count: deviceCount)
 
         status = AudioObjectGetPropertyData(
@@ -122,7 +187,10 @@ class AudioAnalyzer: ObservableObject {
             &deviceIDs
         )
 
-        guard status == noErr else { return }
+        guard status == noErr else {
+            DebugLogger.shared.error("Failed to get device list: OSStatus \(status)", context: "Audio")
+            return
+        }
 
         var devices: [AudioDevice] = []
 
@@ -130,15 +198,19 @@ class AudioAnalyzer: ObservableObject {
             if let device = getDeviceInfo(deviceID: deviceID) {
                 // Only include input devices
                 if hasInputChannels(deviceID: deviceID) {
+                    DebugLogger.shared.debug("Found input device: \(device.name) (ID: \(device.id))", context: "Audio")
                     devices.append(device)
                 }
             }
         }
 
+        DebugLogger.shared.info("Total input devices found: \(devices.count)", context: "Audio")
+
         DispatchQueue.main.async {
             self.availableDevices = devices
             // Auto-select BlackHole if available
             if let blackHole = devices.first(where: { $0.name.lowercased().contains("blackhole") }) {
+                DebugLogger.shared.info("Auto-selecting BlackHole: \(blackHole.name)", context: "Audio")
                 self.selectedDevice = blackHole
             }
         }

@@ -47,6 +47,8 @@ class AudioAnalyzer: ObservableObject {
     private var isRunning = false
 
     init() {
+        print("🎤 AudioAnalyzer init() starting...")
+
         audioEngine = AVAudioEngine()
         inputNode = audioEngine.inputNode
 
@@ -62,15 +64,23 @@ class AudioAnalyzer: ObservableObject {
             vDSP_DFT_Direction.FORWARD
         )
 
+        print("🎤 AudioAnalyzer init() - requesting permission...")
+
         // Request permission before loading devices
         requestMicrophonePermission()
+
+        print("🎤 AudioAnalyzer init() complete")
     }
 
     // MARK: - Permission Handling
 
     func requestMicrophonePermission() {
-        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        let status = AVCaptureDevice.authorizationStatus(for: .audio)
+        print("🎤 requestMicrophonePermission() - status: \(status.rawValue)")
+
+        switch status {
         case .authorized:
+            print("🎤 Permission AUTHORIZED - loading devices...")
             DebugLogger.shared.info("Microphone permission already granted", context: "Audio")
             DispatchQueue.main.async {
                 self.permissionStatus = .granted
@@ -79,8 +89,10 @@ class AudioAnalyzer: ObservableObject {
             loadAvailableDevices()
 
         case .notDetermined:
+            print("🎤 Permission NOT DETERMINED - requesting...")
             DebugLogger.shared.info("Requesting microphone permission...", context: "Audio")
             AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
+                print("🎤 Permission request result: \(granted)")
                 DispatchQueue.main.async {
                     if granted {
                         DebugLogger.shared.info("Microphone permission granted", context: "Audio")
@@ -95,18 +107,21 @@ class AudioAnalyzer: ObservableObject {
             }
 
         case .denied:
+            print("🎤 Permission DENIED")
             DebugLogger.shared.warning("Microphone permission denied - user must enable in System Settings", context: "Audio")
             DispatchQueue.main.async {
                 self.permissionStatus = .denied
             }
 
         case .restricted:
+            print("🎤 Permission RESTRICTED")
             DebugLogger.shared.warning("Microphone permission restricted", context: "Audio")
             DispatchQueue.main.async {
                 self.permissionStatus = .restricted
             }
 
         @unknown default:
+            print("🎤 Permission UNKNOWN")
             DebugLogger.shared.warning("Unknown microphone permission status", context: "Audio")
         }
     }
@@ -168,6 +183,7 @@ class AudioAnalyzer: ObservableObject {
 
     private func loadAvailableDevices() {
         #if os(macOS)
+        print("🎤 loadAvailableDevices() starting...")
         DebugLogger.shared.info("Loading available audio devices...", context: "Audio")
 
         var propertyAddress = AudioObjectPropertyAddress(
@@ -191,6 +207,7 @@ class AudioAnalyzer: ObservableObject {
         }
 
         let deviceCount = Int(dataSize) / MemoryLayout<AudioDeviceID>.size
+        print("🎤 Found \(deviceCount) total audio devices")
         DebugLogger.shared.debug("Found \(deviceCount) total audio devices", context: "Audio")
 
         var deviceIDs = [AudioDeviceID](repeating: 0, count: deviceCount)
@@ -224,12 +241,15 @@ class AudioAnalyzer: ObservableObject {
             }
         }
 
+        print("🎤 Total INPUT devices found: \(devices.count)")
         DebugLogger.shared.info("Total input devices found: \(devices.count)", context: "Audio")
         if devices.isEmpty {
+            print("🎤 WARNING: No input devices found!")
             DebugLogger.shared.warning("No input devices found! Check microphone permissions.", context: "Audio")
         }
 
         DispatchQueue.main.async {
+            print("🎤 Setting availableDevices to \(devices.count) devices")
             self.availableDevices = devices
             // Auto-select BlackHole if available
             if let blackHole = devices.first(where: { $0.name.lowercased().contains("blackhole") }) {

@@ -55,7 +55,8 @@ struct ContentView: View {
             appState.audioLevels = levels
         }
         .onAppear {
-            // Start audio analysis when view appears
+            // Refresh audio devices and start analysis when view appears
+            audioAnalyzer.refreshDevices()
             audioAnalyzer.start()
         }
     }

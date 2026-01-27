@@ -30,9 +30,13 @@ class VisualEngine {
     weak var appState: AppState?
 
     init?(device: MTLDevice) {
+        print("🎨 VisualEngine init starting...")
+
         guard let queue = device.makeCommandQueue() else {
+            print("🎨 ERROR: Failed to create command queue")
             return nil
         }
+        print("🎨 Command queue created")
 
         self.device = device
         self.commandQueue = queue
@@ -55,53 +59,76 @@ class VisualEngine {
             resolution: simd_float2(1920, 1080),
             randomSeed: UInt32.random(in: 0..<UInt32.max)
         )
+        print("🎨 Uniforms initialized")
 
         setupPipelines()
+        print("🎨 Pipelines setup complete, count: \(pipelineStates.count)")
+
         observeResetNotification()
+        print("🎨 VisualEngine init complete")
     }
 
     // MARK: - Setup
 
     private func setupPipelines() {
+        print("🎨 Setting up pipelines...")
+
         guard let library = device.makeDefaultLibrary() else {
-            print("Failed to create Metal library")
+            print("🎨 ERROR: Failed to create Metal library")
             return
         }
+        print("🎨 Metal library created")
 
         // Base layer pipeline
+        print("🎨 Creating baseLayer pipeline...")
         if let pipeline = createPipeline(
             library: library,
             vertexFunction: "vertexShader",
             fragmentFunction: "baseLayerFragment"
         ) {
             pipelineStates["baseLayer"] = pipeline
+            print("🎨 baseLayer pipeline created")
+        } else {
+            print("🎨 ERROR: Failed to create baseLayer pipeline")
         }
 
         // Texture composite pipeline
+        print("🎨 Creating textureComposite pipeline...")
         if let pipeline = createPipeline(
             library: library,
             vertexFunction: "vertexShader",
             fragmentFunction: "textureCompositeFragment"
         ) {
             pipelineStates["textureComposite"] = pipeline
+            print("🎨 textureComposite pipeline created")
+        } else {
+            print("🎨 ERROR: Failed to create textureComposite pipeline")
         }
 
         // Glitch pipeline
+        print("🎨 Creating glitch pipeline...")
         if let pipeline = createPipeline(
             library: library,
             vertexFunction: "vertexShader",
             fragmentFunction: "glitchFragment"
         ) {
             pipelineStates["glitch"] = pipeline
+            print("🎨 glitch pipeline created")
+        } else {
+            print("🎨 ERROR: Failed to create glitch pipeline")
         }
 
         // Post-process pipeline
+        print("🎨 Creating postProcess pipeline...")
         if let pipeline = createPipeline(
             library: library,
             vertexFunction: "vertexShader",
             fragmentFunction: "postProcessFragment"
         ) {
             pipelineStates["postProcess"] = pipeline
+            print("🎨 postProcess pipeline created")
+        } else {
+            print("🎨 ERROR: Failed to create postProcess pipeline")
         }
     }
 

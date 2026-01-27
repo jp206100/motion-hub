@@ -107,24 +107,38 @@ struct MetalPreviewView: NSViewRepresentable {
     let audioAnalyzer: AudioAnalyzer
 
     func makeNSView(context: Context) -> MTKView {
+        print("🎨 MetalPreviewView makeNSView starting...")
         let mtkView = MTKView()
 
         // Safely get Metal device - may be nil on some systems
         if let device = MTLCreateSystemDefaultDevice() {
+            print("🎨 Metal device created: \(device.name)")
             mtkView.device = device
             mtkView.colorPixelFormat = .bgra8Unorm
             mtkView.clearColor = MTLClearColor(red: 0.04, green: 0.04, blue: 0.04, alpha: 1.0)
             mtkView.delegate = context.coordinator
             mtkView.preferredFramesPerSecond = appState.targetFPS
+
+            // Start paused, unpause after setup
+            mtkView.isPaused = true
             mtkView.enableSetNeedsDisplay = false
-            mtkView.isPaused = false
 
             // Initialize the visual engine with the device
+            print("🎨 Setting up VisualEngine...")
             context.coordinator.setupVisualEngine(device: device, appState: appState)
+
+            // Now unpause to start rendering
+            if context.coordinator.visualEngine != nil {
+                print("🎨 VisualEngine created successfully, starting render loop")
+                mtkView.isPaused = false
+            } else {
+                print("🎨 ERROR: VisualEngine creation failed!")
+            }
         } else {
-            print("Metal is not available on this system")
+            print("🎨 ERROR: Metal is not available on this system")
         }
 
+        print("🎨 MetalPreviewView makeNSView complete")
         return mtkView
     }
 
@@ -150,6 +164,7 @@ struct MetalPreviewView: NSViewRepresentable {
         private var lastFrameTime: CFAbsoluteTime = CFAbsoluteTimeGetCurrent()
         private var frameCount: Int = 0
         private var fpsUpdateTime: CFAbsoluteTime = CFAbsoluteTimeGetCurrent()
+        private var hasLoggedFirstFrame = false
 
         init(appState: AppState, audioAnalyzer: AudioAnalyzer) {
             self.appState = appState
@@ -160,37 +175,48 @@ struct MetalPreviewView: NSViewRepresentable {
         func setupVisualEngine(device: MTLDevice, appState: AppState) {
             self.visualEngine = VisualEngine(device: device)
             self.visualEngine?.appState = appState
+            print("🎨 VisualEngine setup complete: \(self.visualEngine != nil ? "success" : "failed")")
         }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
-            // Handle resize - VisualEngine will pick this up from the view
+            print("🎨 Drawable size changed: \(size)")
         }
 
         func draw(in view: MTKView) {
+            if !hasLoggedFirstFrame {
+                print("🎨 First draw call")
+                hasLoggedFirstFrame = true
+            }
+
             // Calculate delta time
             let currentTime = CFAbsoluteTimeGetCurrent()
             let deltaTime = Float(currentTime - lastFrameTime)
             lastFrameTime = currentTime
 
-            // Update FPS counter
+            // Update FPS counter (only once per second)
             frameCount += 1
             if currentTime - fpsUpdateTime >= 1.0 {
-                DispatchQueue.main.async { [weak self] in
-                    self?.appState.currentFPS = self?.frameCount ?? 0
-                }
+                let fps = frameCount
                 frameCount = 0
                 fpsUpdateTime = currentTime
+
+                // Update FPS on main thread
+                DispatchQueue.main.async { [weak self] in
+                    self?.appState.currentFPS = fps
+                }
             }
 
             // Update and render using VisualEngine
-            if let engine = visualEngine {
-                engine.update(
-                    deltaTime: deltaTime,
-                    audioLevels: appState.audioLevels,
-                    appState: appState
-                )
-                engine.render(in: view)
+            guard let engine = visualEngine else {
+                return
             }
+
+            engine.update(
+                deltaTime: deltaTime,
+                audioLevels: appState.audioLevels,
+                appState: appState
+            )
+            engine.render(in: view)
         }
     }
 }

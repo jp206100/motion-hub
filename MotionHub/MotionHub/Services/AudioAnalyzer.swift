@@ -193,13 +193,44 @@ class AudioAnalyzer: ObservableObject {
             return
         }
 
-        print("🎤 Audio engine created successfully, updating state on main thread...")
+        print("🎤 Hardware format: \(hardwareFormat.sampleRate) Hz, \(hardwareFormat.channelCount) channels")
+
+        // Create audio format for tap - do this on background thread
+        guard let format = AVAudioFormat(
+            commonFormat: .pcmFormatFloat32,
+            sampleRate: hardwareFormat.sampleRate,
+            channels: 1,
+            interleaved: false
+        ) else {
+            print("🎤 Failed to create audio format")
+            DispatchQueue.main.async {
+                self.isEnablingAudio = false
+                self.safeLoadAvailableDevices()
+            }
+            return
+        }
+
+        // Install tap on background thread - this can block!
+        print("🎤 Installing audio tap on background thread...")
+        input.installTap(
+            onBus: 0,
+            bufferSize: AVAudioFrameCount(self.bufferSize),
+            format: format
+        ) { [weak self] buffer, _ in
+            self?.processAudioBuffer(buffer)
+        }
+        print("🎤 Audio tap installed")
+
+        // DON'T start the engine automatically - let user select device first
+        // Just update state to indicate audio is available
+        print("🎤 Audio engine ready, updating state on main thread...")
         DispatchQueue.main.async {
             self.audioEngine = engine
             self.inputNode = input
+            self.sampleRate = hardwareFormat.sampleRate
             self.isAudioAvailable = true
+            self.isSetupComplete = true
             self.isEnablingAudio = false  // Reset flag - initialization complete
-            self.setupAudioEngine()
             self.safeLoadAvailableDevices()
             print("🎤 Audio engine initialization complete!")
         }

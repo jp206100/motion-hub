@@ -47,6 +47,7 @@ class AudioAnalyzer: ObservableObject {
     // MARK: - State
     private var isRunning = false
     private var isSetupComplete = false
+    private var isEnablingAudio = false  // Guard against race condition
 
     init() {
         print("🎤 AudioAnalyzer init() starting...")
@@ -149,41 +150,58 @@ class AudioAnalyzer: ObservableObject {
     }
 
     func enableAudio() {
-        guard !isAudioAvailable else { return }
+        // Synchronous guards to prevent race condition
+        // Both isEnablingAudio and isAudioAvailable must be checked
+        guard !isAudioAvailable, !isEnablingAudio else {
+            print("🎤 enableAudio() skipped - already enabling or available")
+            return
+        }
+
+        // Set flag synchronously BEFORE async dispatch to prevent race
+        isEnablingAudio = true
+        print("🎤 enableAudio() starting initialization...")
+
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             self?.initializeAudioEngine()
         }
     }
 
     private func initializeAudioEngine() {
+        print("🎤 initializeAudioEngine() starting on background thread...")
         let hasDevices = safeCheckForInputDevices()
 
         guard hasDevices else {
-            print("No audio input devices available or CoreAudio unavailable")
+            print("🎤 No audio input devices available or CoreAudio unavailable")
             DispatchQueue.main.async {
+                self.isEnablingAudio = false  // Reset flag so it can be retried
                 self.safeLoadAvailableDevices()
             }
             return
         }
 
+        print("🎤 Creating AVAudioEngine...")
         let engine = AVAudioEngine()
         let input = engine.inputNode
 
         let hardwareFormat = input.outputFormat(forBus: 0)
         guard hardwareFormat.sampleRate > 0 && hardwareFormat.channelCount > 0 else {
-            print("Audio input not available - no valid hardware format")
+            print("🎤 Audio input not available - no valid hardware format")
             DispatchQueue.main.async {
+                self.isEnablingAudio = false  // Reset flag so it can be retried
                 self.safeLoadAvailableDevices()
             }
             return
         }
 
+        print("🎤 Audio engine created successfully, updating state on main thread...")
         DispatchQueue.main.async {
             self.audioEngine = engine
             self.inputNode = input
             self.isAudioAvailable = true
+            self.isEnablingAudio = false  // Reset flag - initialization complete
             self.setupAudioEngine()
             self.safeLoadAvailableDevices()
+            print("🎤 Audio engine initialization complete!")
         }
     }
 

@@ -372,11 +372,9 @@ class AudioAnalyzer: ObservableObject {
         DispatchQueue.main.async {
             print("🎤 Setting availableDevices to \(devices.count) devices on main thread")
             self.availableDevices = devices
-            if let blackHole = devices.first(where: { $0.name.lowercased().contains("blackhole") }) {
-                print("🎤 Auto-selecting BlackHole: \(blackHole.name)")
-                DebugLogger.shared.info("Auto-selecting BlackHole: \(blackHole.name)", context: "Audio")
-                self.selectedDevice = blackHole
-            }
+            // Note: Don't auto-select device here - user should manually select
+            // Auto-selection was causing the app to freeze by triggering
+            // selectInputDevice which blocks the main thread
         }
         #endif
     }
@@ -576,24 +574,84 @@ class AudioAnalyzer: ObservableObject {
     func selectInputDevice(_ device: AudioDevice) {
         guard selectedDevice?.id != device.id else { return }
 
+        print("🎤 selectInputDevice: \(device.name)")
         selectedDevice = device
 
         #if os(macOS)
         stop()
         inputNode?.removeTap(onBus: 0)
 
+        // Do all audio engine setup on background thread to avoid blocking UI
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
 
+            print("🎤 Creating new audio engine on background thread...")
             let engine = AVAudioEngine()
+            let input = engine.inputNode
 
-            DispatchQueue.main.async {
-                self.audioEngine = engine
-                self.inputNode = engine.inputNode
-                self.configureInputDevice(deviceID: device.id)
-                self.isSetupComplete = false
-                self.setupAudioEngine()
-                self.start()
+            // Configure device on background thread
+            if let audioUnit = input.audioUnit {
+                var deviceID = device.id
+                let status = AudioUnitSetProperty(
+                    audioUnit,
+                    kAudioOutputUnitProperty_CurrentDevice,
+                    kAudioUnitScope_Global,
+                    0,
+                    &deviceID,
+                    UInt32(MemoryLayout<AudioDeviceID>.size)
+                )
+                if status != noErr {
+                    print("🎤 Failed to set audio input device: \(status)")
+                } else {
+                    print("🎤 Audio device configured successfully")
+                }
+            }
+
+            // Get hardware format
+            let hardwareFormat = input.outputFormat(forBus: 0)
+            guard hardwareFormat.sampleRate > 0 else {
+                print("🎤 Audio input not available - no valid hardware format")
+                return
+            }
+
+            print("🎤 Hardware format: \(hardwareFormat.sampleRate) Hz")
+
+            guard let format = AVAudioFormat(
+                commonFormat: .pcmFormatFloat32,
+                sampleRate: hardwareFormat.sampleRate,
+                channels: 1,
+                interleaved: false
+            ) else {
+                print("🎤 Failed to create audio format")
+                return
+            }
+
+            // Install tap on background thread
+            input.installTap(
+                onBus: 0,
+                bufferSize: AVAudioFrameCount(self.bufferSize),
+                format: format
+            ) { [weak self] buffer, _ in
+                self?.processAudioBuffer(buffer)
+            }
+
+            print("🎤 Audio tap installed, starting engine...")
+
+            // Start engine on background thread
+            do {
+                try engine.start()
+                print("🎤 Audio engine started successfully")
+
+                // Update state on main thread
+                DispatchQueue.main.async {
+                    self.audioEngine = engine
+                    self.inputNode = input
+                    self.sampleRate = hardwareFormat.sampleRate
+                    self.isSetupComplete = true
+                    self.isRunning = true
+                }
+            } catch {
+                print("🎤 Failed to start audio engine: \(error)")
             }
         }
         #endif

@@ -122,19 +122,24 @@ class AudioAnalyzer: ObservableObject {
     }
 
     func refreshDevices() {
+        print("🎤 refreshDevices() called")
         DebugLogger.shared.info("Refreshing audio devices...", context: "Audio")
         // Re-check permission status first
         let status = AVCaptureDevice.authorizationStatus(for: .audio)
+        print("🎤 Current permission status: \(status.rawValue) (0=notDetermined, 1=restricted, 2=denied, 3=authorized)")
         DebugLogger.shared.info("Current permission status: \(status.rawValue)", context: "Audio")
 
         if status == .authorized {
+            print("🎤 Permission AUTHORIZED - loading devices...")
             DispatchQueue.main.async {
                 self.permissionStatus = .granted
             }
             loadAvailableDevices()
         } else if status == .notDetermined {
+            print("🎤 Permission NOT DETERMINED - requesting...")
             requestMicrophonePermission()
         } else {
+            print("🎤 Permission DENIED or RESTRICTED - still trying to load devices...")
             DispatchQueue.main.async {
                 self.permissionStatus = .denied
             }
@@ -301,6 +306,7 @@ class AudioAnalyzer: ObservableObject {
         )
 
         guard status == noErr else {
+            print("🎤 ERROR: Failed to get device list size: OSStatus \(status)")
             DebugLogger.shared.error("Failed to get device list size: OSStatus \(status)", context: "Audio")
             return
         }
@@ -308,6 +314,11 @@ class AudioAnalyzer: ObservableObject {
         let deviceCount = Int(dataSize) / MemoryLayout<AudioDeviceID>.size
         print("🎤 Found \(deviceCount) total audio devices")
         DebugLogger.shared.debug("Found \(deviceCount) total audio devices", context: "Audio")
+
+        if deviceCount == 0 {
+            print("🎤 ERROR: No audio devices found at all!")
+            return
+        }
 
         var deviceIDs = [AudioDeviceID](repeating: 0, count: deviceCount)
 
@@ -321,36 +332,48 @@ class AudioAnalyzer: ObservableObject {
         )
 
         guard status == noErr else {
+            print("🎤 ERROR: Failed to get device list: OSStatus \(status)")
             DebugLogger.shared.error("Failed to get device list: OSStatus \(status)", context: "Audio")
             return
         }
 
         var devices: [AudioDevice] = []
+        var allDeviceNames: [String] = []
 
         for deviceID in deviceIDs {
             if let device = getDeviceInfo(deviceID: deviceID) {
+                allDeviceNames.append(device.name)
                 let hasInput = hasInputChannels(deviceID: deviceID)
+                print("🎤 Device: '\(device.name)' (ID: \(device.id)) - hasInput: \(hasInput)")
                 DebugLogger.shared.debug("Device: \(device.name) (ID: \(device.id)) - hasInput: \(hasInput)", context: "Audio")
                 // Only include input devices
                 if hasInput {
                     devices.append(device)
                 }
             } else {
+                print("🎤 Could not get info for device ID: \(deviceID)")
                 DebugLogger.shared.debug("Could not get info for device ID: \(deviceID)", context: "Audio")
             }
         }
 
+        print("🎤 All devices found: \(allDeviceNames.joined(separator: ", "))")
         print("🎤 Total INPUT devices found: \(devices.count)")
         DebugLogger.shared.info("Total input devices found: \(devices.count)", context: "Audio")
+
         if devices.isEmpty {
             print("🎤 WARNING: No input devices found!")
+            print("🎤 This could mean:")
+            print("🎤   1. No microphone or audio input devices connected")
+            print("🎤   2. BlackHole or other virtual audio devices not installed")
+            print("🎤   3. Devices don't report input channels correctly")
             DebugLogger.shared.warning("No input devices found! Check microphone permissions.", context: "Audio")
         }
 
         DispatchQueue.main.async {
-            print("🎤 Setting availableDevices to \(devices.count) devices")
+            print("🎤 Setting availableDevices to \(devices.count) devices on main thread")
             self.availableDevices = devices
             if let blackHole = devices.first(where: { $0.name.lowercased().contains("blackhole") }) {
+                print("🎤 Auto-selecting BlackHole: \(blackHole.name)")
                 DebugLogger.shared.info("Auto-selecting BlackHole: \(blackHole.name)", context: "Audio")
                 self.selectedDevice = blackHole
             }

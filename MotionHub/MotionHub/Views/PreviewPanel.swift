@@ -127,10 +127,15 @@ struct MetalPreviewView: NSViewRepresentable {
             print("🎨 Setting up VisualEngine...")
             context.coordinator.setupVisualEngine(device: device, appState: appState)
 
-            // Now unpause to start rendering
+            // Keep paused for now - render on demand instead of continuous
+            // This helps diagnose if the freeze is caused by the render loop
             if context.coordinator.visualEngine != nil {
-                print("🎨 VisualEngine created successfully, starting render loop")
-                mtkView.isPaused = false
+                print("🎨 VisualEngine created successfully")
+                // Use on-demand rendering instead of continuous
+                mtkView.isPaused = true
+                mtkView.enableSetNeedsDisplay = true
+                // Trigger initial draw
+                mtkView.setNeedsDisplay(mtkView.bounds)
             } else {
                 print("🎨 ERROR: VisualEngine creation failed!")
             }

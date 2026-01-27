@@ -65,7 +65,8 @@ struct KnobView: View {
                     .fill(AppColors.bgDarkest)
                     .frame(width: 8, height: 8)
             }
-            .gesture(
+            .contentShape(Circle())  // Ensure the entire knob area is tappable
+            .highPriorityGesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { gesture in
                         if !isDragging {

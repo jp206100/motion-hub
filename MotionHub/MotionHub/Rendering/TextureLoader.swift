@@ -297,17 +297,28 @@ extension TextureLoader {
             colors.append(simd_float4(0, 0, 0, 0))
         }
 
-        // Create ColorPalette struct data
-        var paletteData: [Float] = []
-        for color in colors {
-            paletteData.append(color.x)
-            paletteData.append(color.y)
-            paletteData.append(color.z)
-            paletteData.append(color.w)
-        }
-        paletteData.append(Float(min(extractedPalette.count, 6))) // colorCount
+        // ColorPalette struct layout in Metal (with alignment padding):
+        // - 6 x simd_float4 colors = 96 bytes
+        // - int colorCount = 4 bytes
+        // - padding to 16-byte alignment = 12 bytes
+        // Total = 112 bytes
 
-        let bufferSize = paletteData.count * MemoryLayout<Float>.stride
-        return device.makeBuffer(bytes: paletteData, length: bufferSize, options: .storageModeShared)
+        var paletteData = [UInt8](repeating: 0, count: 112)
+
+        // Copy colors (96 bytes)
+        for i in 0..<6 {
+            let offset = i * 16
+            let color = colors[i]
+            withUnsafeBytes(of: color.x) { paletteData.replaceSubrange(offset..<offset+4, with: $0) }
+            withUnsafeBytes(of: color.y) { paletteData.replaceSubrange(offset+4..<offset+8, with: $0) }
+            withUnsafeBytes(of: color.z) { paletteData.replaceSubrange(offset+8..<offset+12, with: $0) }
+            withUnsafeBytes(of: color.w) { paletteData.replaceSubrange(offset+12..<offset+16, with: $0) }
+        }
+
+        // Set colorCount at offset 96 (as Int32)
+        let colorCount = Int32(min(extractedPalette.count, 6))
+        withUnsafeBytes(of: colorCount) { paletteData.replaceSubrange(96..<100, with: $0) }
+
+        return device.makeBuffer(bytes: paletteData, length: 112, options: .storageModeShared)
     }
 }

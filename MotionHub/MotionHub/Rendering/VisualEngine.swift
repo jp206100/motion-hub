@@ -195,24 +195,18 @@ class VisualEngine {
     }
 
     private func createDefaultPaletteBuffer() -> MTLBuffer? {
-        // ColorPalette struct: 6 x simd_float4 (colors) + 1 x int32 (colorCount)
-        // Match the exact format used by TextureLoader.createPaletteBuffer()
-        var paletteData: [Float] = []
+        // ColorPalette struct layout in Metal (with alignment padding):
+        // - 6 x simd_float4 colors = 96 bytes
+        // - int colorCount = 4 bytes
+        // - padding to 16-byte alignment = 12 bytes
+        // Total = 112 bytes
 
-        // 6 colors (all zeros)
-        for _ in 0..<6 {
-            paletteData.append(0) // r
-            paletteData.append(0) // g
-            paletteData.append(0) // b
-            paletteData.append(0) // a
-        }
-
-        // colorCount = 0 (stored as Float to match TextureLoader format)
-        paletteData.append(0)
+        var paletteData = [UInt8](repeating: 0, count: 112)
+        // All zeros = 6 black colors with colorCount = 0
 
         return device.makeBuffer(
             bytes: paletteData,
-            length: paletteData.count * MemoryLayout<Float>.stride,
+            length: 112,
             options: .storageModeShared
         )
     }

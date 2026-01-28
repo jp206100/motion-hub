@@ -48,6 +48,7 @@ class AudioAnalyzer: ObservableObject {
     private var isRunning = false
     private var isSetupComplete = false
     private var isEnablingAudio = false  // Guard against race condition
+    private var isRequestingPermission = false  // Guard against multiple permission requests
 
     init() {
         print("🎤 AudioAnalyzer init() starting...")
@@ -73,6 +74,12 @@ class AudioAnalyzer: ObservableObject {
     // MARK: - Permission Handling
 
     func requestMicrophonePermission() {
+        // Guard against multiple permission requests
+        guard !isRequestingPermission else {
+            print("🎤 requestMicrophonePermission() skipped - already requesting")
+            return
+        }
+
         let status = AVCaptureDevice.authorizationStatus(for: .audio)
         print("🎤 requestMicrophonePermission() - status: \(status.rawValue)")
 
@@ -88,9 +95,11 @@ class AudioAnalyzer: ObservableObject {
         case .notDetermined:
             print("🎤 Permission NOT DETERMINED - requesting...")
             DebugLogger.shared.info("Requesting microphone permission...", context: "Audio")
+            isRequestingPermission = true
             AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
                 print("🎤 Permission request result: \(granted)")
                 DispatchQueue.main.async {
+                    self?.isRequestingPermission = false
                     if granted {
                         DebugLogger.shared.info("Microphone permission granted", context: "Audio")
                         self?.permissionStatus = .granted
@@ -166,7 +175,8 @@ class AudioAnalyzer: ObservableObject {
         isEnablingAudio = true
         print("🎤 enableAudio() starting initialization...")
 
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+        // Add small delay to let permission system settle before accessing audio hardware
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.1) { [weak self] in
             self?.initializeAudioEngine()
         }
     }

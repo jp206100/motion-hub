@@ -131,11 +131,14 @@ class AudioAnalyzer: ObservableObject {
         DebugLogger.shared.info("Current permission status: \(status.rawValue)", context: "Audio")
 
         if status == .authorized {
-            print("🎤 Permission AUTHORIZED - loading devices...")
+            print("🎤 Permission AUTHORIZED - loading devices on background thread...")
             DispatchQueue.main.async {
                 self.permissionStatus = .granted
             }
-            loadAvailableDevices()
+            // Load devices on background thread to avoid blocking UI
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                self?.loadAvailableDevices()
+            }
         } else if status == .notDetermined {
             print("🎤 Permission NOT DETERMINED - requesting...")
             requestMicrophonePermission()
@@ -144,8 +147,10 @@ class AudioAnalyzer: ObservableObject {
             DispatchQueue.main.async {
                 self.permissionStatus = .denied
             }
-            // Still try to load devices - Core Audio enumeration might work without permission
-            loadAvailableDevices()
+            // Still try to load devices on background thread - Core Audio enumeration might work without permission
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                self?.loadAvailableDevices()
+            }
         }
     }
 
@@ -286,7 +291,10 @@ class AudioAnalyzer: ObservableObject {
         #if os(macOS)
         guard isAudioAvailable || availableDevices.isEmpty else { return }
         #endif
-        loadAvailableDevices()
+        // Load devices on background thread to avoid blocking UI
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.loadAvailableDevices()
+        }
     }
 
     deinit {

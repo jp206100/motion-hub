@@ -132,6 +132,7 @@ struct MetalPreviewView: NSViewRepresentable {
                 print("🎨 VisualEngine created successfully - enabling continuous rendering")
                 mtkView.isPaused = false
                 mtkView.enableSetNeedsDisplay = false
+                print("🎨 MTKView state - isPaused: \(mtkView.isPaused), delegate: \(mtkView.delegate != nil), device: \(mtkView.device != nil)")
             } else {
                 print("🎨 ERROR: VisualEngine creation failed!")
             }
@@ -140,6 +141,7 @@ struct MetalPreviewView: NSViewRepresentable {
         }
 
         print("🎨 MetalPreviewView makeNSView complete")
+        print("🎨 MTKView frame: \(mtkView.frame), bounds: \(mtkView.bounds)")
         return mtkView
     }
 

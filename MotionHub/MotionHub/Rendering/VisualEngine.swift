@@ -196,8 +196,7 @@ class VisualEngine {
 
     private func createDefaultPaletteBuffer() -> MTLBuffer? {
         // ColorPalette struct: 6 x simd_float4 (colors) + 1 x int32 (colorCount)
-        // simd_float4 = 16 bytes, int32 = 4 bytes
-        // Total: 6 * 16 + 4 = 100 bytes, but we add padding to 104 for alignment
+        // Match the exact format used by TextureLoader.createPaletteBuffer()
         var paletteData: [Float] = []
 
         // 6 colors (all zeros)
@@ -208,9 +207,8 @@ class VisualEngine {
             paletteData.append(0) // a
         }
 
-        // colorCount = 0 (as Int32, reinterpreted as Float for the buffer)
-        let colorCount: Int32 = 0
-        paletteData.append(Float(bitPattern: UInt32(bitPattern: colorCount)))
+        // colorCount = 0 (stored as Float to match TextureLoader format)
+        paletteData.append(0)
 
         return device.makeBuffer(
             bytes: paletteData,
@@ -327,9 +325,19 @@ class VisualEngine {
 
     // MARK: - Render
 
+    private var renderCallCount = 0
+
     func render(in view: MTKView) {
+        renderCallCount += 1
+        if renderCallCount <= 3 {
+            print("🎨 render() called #\(renderCallCount), drawable: \(view.currentDrawable != nil), drawableSize: \(view.drawableSize)")
+        }
+
         guard let drawable = view.currentDrawable,
               let commandBuffer = commandQueue.makeCommandBuffer() else {
+            if renderCallCount <= 3 {
+                print("🎨 render() early exit - no drawable or command buffer")
+            }
             return
         }
 

@@ -26,16 +26,14 @@ struct MotionHubApp: App {
 
     var body: some Scene {
         WindowGroup {
-            // Simple test view - no Metal rendering
-            VStack(spacing: 20) {
-                Text("Motion Hub - All StateObjects Enabled")
-                    .font(.largeTitle)
+            // Test with Metal PreviewPanel
+            VStack(spacing: 10) {
+                Text("Testing Metal PreviewPanel")
+                    .font(.headline)
                     .foregroundColor(.white)
-                Text("No Metal rendering in this test")
-                    .foregroundColor(.gray)
-                Text("If this works without hanging, the issue is with Metal/PreviewPanel")
-                    .foregroundColor(.gray)
-                    .font(.caption)
+
+                PreviewPanel()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.black)
@@ -45,7 +43,7 @@ struct MotionHubApp: App {
             .environmentObject(packManager)
             .environmentObject(preprocessingManager)
             .onAppear {
-                print("🚀 Test view appeared!")
+                print("🚀 Test view with Metal appeared!")
             }
         }
         .defaultSize(width: 1000, height: 700)

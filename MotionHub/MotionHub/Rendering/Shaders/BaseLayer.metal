@@ -2,7 +2,8 @@
 //  BaseLayer.metal
 //  Motion Hub
 //
-//  Base layer shader - animated gradient using color palette
+//  Base layer shader - Multiple generative visual patterns
+//  Pattern selection based on randomSeed for variety
 //
 
 #include <metal_stdlib>
@@ -12,49 +13,337 @@ using namespace metal;
 
 // Forward declarations from Common.metal
 float hash(float2 p);
+float3 hash3(float2 p);
 float noise(float2 p);
+float gradientNoise(float2 p);
+float fbm(float2 p, int octaves);
+float voronoi(float2 p);
+float simplexNoise(float2 p);
 float3 rgb2hsv(float3 c);
 float3 hsv2rgb(float3 c);
+float pulse(float t, float freq, float sharpness);
+float2 kaleidoscope(float2 uv, float segments);
 
-fragment float4 baseLayerFragment(
-    VertexOut in [[stage_in]],
-    constant Uniforms& u [[buffer(0)]]
-) {
-    float2 uv = in.texCoord;
+// MARK: - Pattern 0: Organic Flow
+float3 patternOrganicFlow(float2 uv, float t, float audioMod, float intensity) {
+    // Flowing organic shapes using FBM
+    float2 p = uv * 3.0;
 
-    // Animated gradient
-    float t = u.time * u.speed * 0.1;
-    float audioMod = u.audioFreqBand * u.intensity;
+    // Distort UV based on audio
+    p += float2(
+        fbm(p + t * 0.3, 4) * audioMod * 2.0,
+        fbm(p - t * 0.2 + 100.0, 4) * audioMod * 2.0
+    );
 
-    // Create procedural gradient with audio reactivity
-    float2 p = uv * 2.0 - 1.0;
-    float angle = atan2(p.y, p.x);
-    float radius = length(p);
+    float n = fbm(p + t * 0.1, 5);
 
-    // Multi-layered noise for interesting patterns
-    float n1 = noise(uv * 3.0 + t);
-    float n2 = noise(uv * 7.0 - t * 0.5);
-    float n3 = noise(float2(angle * 5.0, radius * 8.0) + t);
+    // Audio-reactive pulsation
+    float pulsation = 1.0 + audioMod * intensity * 0.8;
+    n *= pulsation;
 
-    float pattern = (n1 + n2 * 0.5 + n3 * 0.3) / 1.8;
-    pattern += audioMod * 0.5;
+    // Color palette - warm organic
+    float3 col1 = float3(0.8, 0.3, 0.2);  // Warm red
+    float3 col2 = float3(0.9, 0.6, 0.3);  // Orange
+    float3 col3 = float3(0.2, 0.1, 0.3);  // Deep purple
 
-    // Color based on pattern
-    float hue = fract(pattern * 0.3 + t * 0.05);
-    float sat = 0.6 + audioMod * 0.4;
-    float val = 0.4 + pattern * 0.3 + audioMod * 0.3;
+    float3 color = mix(col3, mix(col1, col2, n), n);
+    color *= 0.5 + n * 0.5 + audioMod * intensity * 0.5;
+
+    return color;
+}
+
+// MARK: - Pattern 1: Cellular Division
+float3 patternCellular(float2 uv, float t, float audioMod, float intensity) {
+    // Voronoi-based cellular pattern
+    float2 p = uv * 5.0;
+
+    // Animate cell positions
+    p += t * 0.2;
+
+    // Audio makes cells pulse
+    float scale = 5.0 + audioMod * intensity * 3.0;
+    float v = voronoi(uv * scale);
+    float v2 = voronoi(uv * scale * 2.0 + 10.0);
+
+    // Edge detection on cells
+    float edge = smoothstep(0.0, 0.1 + audioMod * 0.1, v);
+
+    // Color based on cell distance
+    float hue = fract(v * 0.5 + t * 0.1);
+    float sat = 0.7 + audioMod * intensity * 0.3;
+    float val = edge * (0.6 + audioMod * intensity * 0.4);
 
     float3 color = hsv2rgb(float3(hue, sat, val));
 
-    // Apply accent color tint (cyan-ish from spec)
-    float3 accentColor = float3(0.24, 0.85, 0.85); // #3dd9d9
-    color = mix(color, color * accentColor, 0.3);
+    // Add glow at edges
+    float glow = 1.0 - smoothstep(0.0, 0.15, v);
+    color += float3(0.3, 0.6, 1.0) * glow * audioMod * intensity;
+
+    return color;
+}
+
+// MARK: - Pattern 2: Plasma Waves
+float3 patternPlasma(float2 uv, float t, float audioMod, float intensity) {
+    float2 p = uv * 2.0 - 1.0;
+
+    // Multiple plasma waves
+    float plasma = 0.0;
+    plasma += sin(p.x * 10.0 + t * 2.0);
+    plasma += sin(p.y * 10.0 + t * 1.7);
+    plasma += sin((p.x + p.y) * 8.0 + t * 2.5);
+    plasma += sin(length(p) * 12.0 - t * 3.0);
+
+    // Audio modulates wave intensity
+    plasma *= 0.25;
+    plasma += audioMod * intensity * sin(t * 5.0 + length(p) * 10.0);
+
+    // Pulsating brightness
+    float brightness = 0.5 + audioMod * intensity * 0.5;
+
+    // Vibrant color palette
+    float3 color;
+    color.r = sin(plasma * 3.14159 + 0.0) * 0.5 + 0.5;
+    color.g = sin(plasma * 3.14159 + 2.094) * 0.5 + 0.5;
+    color.b = sin(plasma * 3.14159 + 4.188) * 0.5 + 0.5;
+
+    color *= brightness;
+
+    return color;
+}
+
+// MARK: - Pattern 3: Kaleidoscope
+float3 patternKaleidoscope(float2 uv, float t, float audioMod, float intensity) {
+    // Number of segments varies with audio
+    float segments = 6.0 + floor(audioMod * intensity * 4.0);
+
+    // Apply kaleidoscope fold
+    float2 kUv = kaleidoscope(uv, segments);
+
+    // Rotate over time
+    float2 centered = kUv * 2.0 - 1.0;
+    float angle = t * 0.5;
+    float2 rotated;
+    rotated.x = centered.x * cos(angle) - centered.y * sin(angle);
+    rotated.y = centered.x * sin(angle) + centered.y * cos(angle);
+    rotated = rotated * 0.5 + 0.5;
+
+    // Create pattern
+    float n = fbm(rotated * 4.0 + t * 0.2, 4);
+    n += audioMod * intensity * 0.5;
+
+    // Psychedelic colors
+    float hue = fract(n + t * 0.1);
+    float sat = 0.8;
+    float val = 0.4 + n * 0.4 + audioMod * intensity * 0.3;
+
+    return hsv2rgb(float3(hue, sat, val));
+}
+
+// MARK: - Pattern 4: Digital Grid
+float3 patternDigitalGrid(float2 uv, float t, float audioMod, float intensity) {
+    // Grid-based digital pattern
+    float gridSize = 20.0 + audioMod * intensity * 10.0;
+    float2 grid = fract(uv * gridSize);
+    float2 gridId = floor(uv * gridSize);
+
+    // Random activation per cell
+    float activation = hash(gridId + floor(t * 4.0));
+    activation = step(0.7 - audioMod * intensity * 0.5, activation);
+
+    // Cell glow
+    float2 cellCenter = grid - 0.5;
+    float dist = length(cellCenter);
+    float glow = 1.0 - smoothstep(0.0, 0.5, dist);
+    glow *= activation;
+
+    // Pulsing effect
+    glow *= 0.5 + 0.5 * sin(t * 10.0 + hash(gridId) * 6.28);
+    glow *= 1.0 + audioMod * intensity;
+
+    // Cyberpunk colors
+    float3 color1 = float3(0.0, 1.0, 0.8);  // Cyan
+    float3 color2 = float3(1.0, 0.0, 0.5);  // Magenta
+    float colorMix = hash(gridId * 2.0);
+
+    float3 color = mix(color1, color2, colorMix) * glow;
+
+    // Add scan lines
+    float scanLine = sin(uv.y * 200.0 + t * 10.0) * 0.5 + 0.5;
+    color *= 0.8 + scanLine * 0.2;
+
+    return color;
+}
+
+// MARK: - Pattern 5: Fluid Simulation
+float3 patternFluid(float2 uv, float t, float audioMod, float intensity) {
+    float2 p = uv * 2.0 - 1.0;
+
+    // Domain warping for fluid effect
+    float2 q = float2(
+        fbm(p + t * 0.1, 4),
+        fbm(p + float2(1.0, 0.0), 4)
+    );
+
+    float2 r = float2(
+        fbm(p + q * 4.0 + float2(1.7, 9.2) + t * 0.15, 4),
+        fbm(p + q * 4.0 + float2(8.3, 2.8) + t * 0.126, 4)
+    );
+
+    float f = fbm(p + r * 4.0 + audioMod * intensity * 2.0, 4);
+
+    // Color palette - deep ocean
+    float3 col1 = float3(0.1, 0.2, 0.4);
+    float3 col2 = float3(0.2, 0.4, 0.6);
+    float3 col3 = float3(0.4, 0.7, 0.9);
+    float3 col4 = float3(0.9, 0.9, 1.0);
+
+    float3 color = mix(col1, col2, clamp(f * 2.0, 0.0, 1.0));
+    color = mix(color, col3, clamp(f * 2.0 - 0.5, 0.0, 1.0));
+    color = mix(color, col4, clamp(f * 2.0 - 1.0, 0.0, 1.0));
+
+    // Audio brightness pulse
+    color *= 0.6 + audioMod * intensity * 0.6;
+
+    return color;
+}
+
+// MARK: - Pattern 6: Particle Field
+float3 patternParticles(float2 uv, float t, float audioMod, float intensity) {
+    float3 color = float3(0.02, 0.02, 0.05);
+
+    // Multiple particle layers
+    for (int layer = 0; layer < 3; layer++) {
+        float layerScale = 1.0 + float(layer) * 0.5;
+        float layerSpeed = 1.0 + float(layer) * 0.3;
+
+        for (int i = 0; i < 20; i++) {
+            // Particle position
+            float2 particleId = float2(float(i), float(layer));
+            float3 rnd = hash3(particleId);
+
+            float2 pos;
+            pos.x = fract(rnd.x + t * 0.1 * layerSpeed * (rnd.z - 0.5));
+            pos.y = fract(rnd.y + t * 0.05 * layerSpeed);
+
+            // Distance to particle
+            float dist = length(uv - pos);
+
+            // Particle size pulsates with audio
+            float size = 0.01 + audioMod * intensity * 0.02;
+            size *= (1.0 + sin(t * 5.0 + rnd.z * 6.28) * 0.3);
+
+            // Glow
+            float glow = size / (dist + 0.001);
+            glow = pow(glow, 1.5);
+
+            // Color based on position
+            float3 particleColor = hsv2rgb(float3(rnd.z + t * 0.1, 0.8, 1.0));
+            color += particleColor * glow * 0.02 / layerScale;
+        }
+    }
+
+    return color;
+}
+
+// MARK: - Pattern 7: Fractal Zoom
+float3 patternFractalZoom(float2 uv, float t, float audioMod, float intensity) {
+    float2 p = uv * 2.0 - 1.0;
+
+    // Zoom effect
+    float zoom = 2.0 + sin(t * 0.5) * 0.5 + audioMod * intensity;
+    p *= zoom;
+
+    // Rotate
+    float angle = t * 0.2;
+    float2 rotP;
+    rotP.x = p.x * cos(angle) - p.y * sin(angle);
+    rotP.y = p.x * sin(angle) + p.y * cos(angle);
+
+    // Mandelbrot-inspired iteration
+    float2 z = rotP;
+    float2 c = float2(-0.7 + sin(t * 0.1) * 0.1, 0.27 + cos(t * 0.15) * 0.1);
+
+    float iterations = 0.0;
+    for (int i = 0; i < 50; i++) {
+        z = float2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + c;
+        if (length(z) > 4.0) break;
+        iterations += 1.0;
+    }
+
+    // Color based on iterations
+    float n = iterations / 50.0;
+    n = pow(n, 0.5);
+
+    float hue = fract(n * 2.0 + t * 0.1);
+    float sat = 0.8 - n * 0.3;
+    float val = n * (0.5 + audioMod * intensity * 0.5);
+
+    return hsv2rgb(float3(hue, sat, val));
+}
+
+// MARK: - Main Fragment Shader
+fragment float4 baseLayerFragment(
+    VertexOut in [[stage_in]],
+    constant Uniforms& u [[buffer(0)]],
+    constant ColorPalette* palettes [[buffer(1)]]
+) {
+    float2 uv = in.texCoord;
+    float t = u.time * u.speed * 0.3;
+
+    // Audio modulation - make it very responsive with intensity
+    float audioMod = u.audioFreqBand;
+    float bassBoost = u.audioBass * 1.5;
+    float intensity = u.intensity;
+
+    // Select pattern based on randomSeed
+    int pattern = u.activePattern % 8;
+
+    float3 color;
+
+    switch (pattern) {
+        case 0:
+            color = patternOrganicFlow(uv, t, audioMod, intensity);
+            break;
+        case 1:
+            color = patternCellular(uv, t, audioMod, intensity);
+            break;
+        case 2:
+            color = patternPlasma(uv, t, audioMod, intensity);
+            break;
+        case 3:
+            color = patternKaleidoscope(uv, t, audioMod, intensity);
+            break;
+        case 4:
+            color = patternDigitalGrid(uv, t, audioMod, intensity);
+            break;
+        case 5:
+            color = patternFluid(uv, t, audioMod, intensity);
+            break;
+        case 6:
+            color = patternParticles(uv, t, audioMod, intensity);
+            break;
+        case 7:
+        default:
+            color = patternFractalZoom(uv, t, audioMod, intensity);
+            break;
+    }
+
+    // Global audio-reactive pulsation - scales with intensity
+    float globalPulse = 1.0 + (bassBoost + audioMod) * intensity * 0.4;
+    color *= globalPulse;
+
+    // Subtle screen-wide breathing effect tied to audio
+    float breathing = 1.0 + sin(t * 2.0) * audioMod * intensity * 0.2;
+    color *= breathing;
 
     // Monochrome mode
     if (u.isMonochrome) {
         float luma = dot(color, float3(0.299, 0.587, 0.114));
         color = float3(luma);
     }
+
+    // Clamp to valid range
+    color = clamp(color, 0.0, 1.0);
 
     return float4(color, 1.0);
 }

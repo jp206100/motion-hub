@@ -72,6 +72,7 @@ struct KnobView: View {
                         if !isDragging {
                             isDragging = true
                             lastDragValue = gesture.location.y
+                            print("🎛️ Knob '\(label)' drag started")
                         }
 
                         let delta = lastDragValue - gesture.location.y
@@ -85,11 +86,15 @@ struct KnobView: View {
                             newValue = Double(stepIndex) / Double(stepCount - 1)
                         }
 
+                        if newValue != value {
+                            print("🎛️ Knob '\(label)' value changing: \(value) -> \(newValue)")
+                        }
                         value = newValue
                         lastDragValue = gesture.location.y
                     }
                     .onEnded { _ in
                         isDragging = false
+                        print("🎛️ Knob '\(label)' drag ended")
                     }
             )
 

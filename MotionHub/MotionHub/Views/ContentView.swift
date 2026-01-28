@@ -13,7 +13,12 @@ struct ContentView: View {
     @EnvironmentObject var midiHandler: MIDIHandler
     @EnvironmentObject var packManager: PackManager
 
+    init() {
+        print("🖼️ ContentView init")
+    }
+
     var body: some View {
+        let _ = print("🖼️ ContentView body being evaluated")
         ZStack {
             // Main three-panel layout
             HStack(spacing: 0) {

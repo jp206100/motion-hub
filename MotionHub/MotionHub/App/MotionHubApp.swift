@@ -17,8 +17,10 @@ struct MotionHubApp: App {
     @StateObject private var preprocessingManager = PreprocessingManager()
 
     init() {
+        print("🚀 MotionHubApp init starting...")
         // Set up app directories
         PackManager.setupApplicationDirectories()
+        print("🚀 MotionHubApp init complete")
     }
 
     var body: some Scene {
@@ -30,6 +32,9 @@ struct MotionHubApp: App {
                 .environmentObject(packManager)
                 .environmentObject(preprocessingManager)
                 .preferredColorScheme(.dark)
+                .onAppear {
+                    print("🚀 ContentView appeared!")
+                }
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)

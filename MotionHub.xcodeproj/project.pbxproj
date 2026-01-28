@@ -1,0 +1,524 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000010000000000000001 /* MotionHubApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000001 /* MotionHubApp.swift */; };
+		A10000020000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000020000000000000002 /* ContentView.swift */; };
+		A10000030000000000000003 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000030000000000000003 /* AppState.swift */; };
+		A10000040000000000000004 /* InspirationPack.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000040000000000000004 /* InspirationPack.swift */; };
+		A10000050000000000000005 /* AudioAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000050000000000000005 /* AudioAnalyzer.swift */; };
+		A10000060000000000000006 /* PackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000060000000000000006 /* PackManager.swift */; };
+		A10000070000000000000007 /* MIDIHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000070000000000000007 /* MIDIHandler.swift */; };
+		A10000080000000000000008 /* DebugLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000080000000000000008 /* DebugLogger.swift */; };
+		A10000090000000000000009 /* PreprocessingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000090000000000000009 /* PreprocessingManager.swift */; };
+		A10000100000000000000010 /* VisualEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000100000000000000010 /* VisualEngine.swift */; };
+		A10000110000000000000011 /* InspirationPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000110000000000000011 /* InspirationPanel.swift */; };
+		A10000120000000000000012 /* PreviewPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000120000000000000012 /* PreviewPanel.swift */; };
+		A10000130000000000000013 /* ControlsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000130000000000000013 /* ControlsPanel.swift */; };
+		A10000140000000000000014 /* KnobView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000140000000000000014 /* KnobView.swift */; };
+		A10000150000000000000015 /* ControlButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000150000000000000015 /* ControlButton.swift */; };
+		A10000160000000000000016 /* MediaThumbView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000160000000000000016 /* MediaThumbView.swift */; };
+		A10000170000000000000017 /* LoadPackModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000170000000000000017 /* LoadPackModal.swift */; };
+		A10000180000000000000018 /* SavePackModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000180000000000000018 /* SavePackModal.swift */; };
+		A10000190000000000000019 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000190000000000000019 /* AppColors.swift */; };
+		A10000200000000000000020 /* AppFonts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000200000000000000020 /* AppFonts.swift */; };
+		A10000210000000000000021 /* BaseLayer.metal in Sources */ = {isa = PBXBuildFile; fileRef = A20000210000000000000021 /* BaseLayer.metal */; };
+		A10000220000000000000022 /* Common.metal in Sources */ = {isa = PBXBuildFile; fileRef = A20000220000000000000022 /* Common.metal */; };
+		A10000230000000000000023 /* Glitch.metal in Sources */ = {isa = PBXBuildFile; fileRef = A20000230000000000000023 /* Glitch.metal */; };
+		A10000240000000000000024 /* PostProcess.metal in Sources */ = {isa = PBXBuildFile; fileRef = A20000240000000000000024 /* PostProcess.metal */; };
+		A10000250000000000000025 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000250000000000000025 /* Assets.xcassets */; };
+		A10000260000000000000026 /* Rajdhani-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A20000260000000000000026 /* Rajdhani-Bold.ttf */; };
+		A10000270000000000000027 /* Rajdhani-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A20000270000000000000027 /* Rajdhani-Regular.ttf */; };
+		A10000280000000000000028 /* RobotoMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A20000280000000000000028 /* RobotoMono-Regular.ttf */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A20000000000000000000000 /* MotionHub.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MotionHub.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000010000000000000001 /* MotionHubApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionHubApp.swift; sourceTree = "<group>"; };
+		A20000020000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A20000030000000000000003 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		A20000040000000000000004 /* InspirationPack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspirationPack.swift; sourceTree = "<group>"; };
+		A20000050000000000000005 /* AudioAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioAnalyzer.swift; sourceTree = "<group>"; };
+		A20000060000000000000006 /* PackManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PackManager.swift; sourceTree = "<group>"; };
+		A20000070000000000000007 /* MIDIHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MIDIHandler.swift; sourceTree = "<group>"; };
+		A20000080000000000000008 /* DebugLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLogger.swift; sourceTree = "<group>"; };
+		A20000090000000000000009 /* PreprocessingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreprocessingManager.swift; sourceTree = "<group>"; };
+		A20000100000000000000010 /* VisualEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualEngine.swift; sourceTree = "<group>"; };
+		A20000110000000000000011 /* InspirationPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspirationPanel.swift; sourceTree = "<group>"; };
+		A20000120000000000000012 /* PreviewPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewPanel.swift; sourceTree = "<group>"; };
+		A20000130000000000000013 /* ControlsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlsPanel.swift; sourceTree = "<group>"; };
+		A20000140000000000000014 /* KnobView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnobView.swift; sourceTree = "<group>"; };
+		A20000150000000000000015 /* ControlButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlButton.swift; sourceTree = "<group>"; };
+		A20000160000000000000016 /* MediaThumbView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaThumbView.swift; sourceTree = "<group>"; };
+		A20000170000000000000017 /* LoadPackModal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadPackModal.swift; sourceTree = "<group>"; };
+		A20000180000000000000018 /* SavePackModal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavePackModal.swift; sourceTree = "<group>"; };
+		A20000190000000000000019 /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
+		A20000200000000000000020 /* AppFonts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFonts.swift; sourceTree = "<group>"; };
+		A20000210000000000000021 /* BaseLayer.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = BaseLayer.metal; sourceTree = "<group>"; };
+		A20000220000000000000022 /* Common.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Common.metal; sourceTree = "<group>"; };
+		A20000230000000000000023 /* Glitch.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Glitch.metal; sourceTree = "<group>"; };
+		A20000240000000000000024 /* PostProcess.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = PostProcess.metal; sourceTree = "<group>"; };
+		A20000250000000000000025 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A20000260000000000000026 /* Rajdhani-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Rajdhani-Bold.ttf"; sourceTree = "<group>"; };
+		A20000270000000000000027 /* Rajdhani-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Rajdhani-Regular.ttf"; sourceTree = "<group>"; };
+		A20000280000000000000028 /* RobotoMono-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "RobotoMono-Regular.ttf"; sourceTree = "<group>"; };
+		A20000290000000000000029 /* ShaderTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderTypes.h; sourceTree = "<group>"; };
+		A20000300000000000000030 /* MotionHub.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MotionHub.entitlements; sourceTree = "<group>"; };
+		A20000310000000000000031 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A30000000000000000000000 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A40000000000000000000000 = {
+			isa = PBXGroup;
+			children = (
+				A40000010000000000000001 /* MotionHub */,
+				A40000020000000000000002 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A40000010000000000000001 /* MotionHub */ = {
+			isa = PBXGroup;
+			children = (
+				A40000030000000000000003 /* App */,
+				A40000040000000000000004 /* Models */,
+				A40000050000000000000005 /* Views */,
+				A40000060000000000000006 /* Services */,
+				A40000070000000000000007 /* Rendering */,
+				A40000080000000000000008 /* Resources */,
+				A20000250000000000000025 /* Assets.xcassets */,
+				A20000300000000000000030 /* MotionHub.entitlements */,
+				A20000310000000000000031 /* Info.plist */,
+			);
+			path = MotionHub/MotionHub;
+			sourceTree = "<group>";
+		};
+		A40000020000000000000002 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000000 /* MotionHub.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A40000030000000000000003 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				A20000010000000000000001 /* MotionHubApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		A40000040000000000000004 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A20000030000000000000003 /* AppState.swift */,
+				A20000040000000000000004 /* InspirationPack.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		A40000050000000000000005 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A20000020000000000000002 /* ContentView.swift */,
+				A20000110000000000000011 /* InspirationPanel.swift */,
+				A20000120000000000000012 /* PreviewPanel.swift */,
+				A20000130000000000000013 /* ControlsPanel.swift */,
+				A40000090000000000000009 /* Components */,
+				A40000100000000000000010 /* Modals */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		A40000060000000000000006 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				A20000050000000000000005 /* AudioAnalyzer.swift */,
+				A20000060000000000000006 /* PackManager.swift */,
+				A20000070000000000000007 /* MIDIHandler.swift */,
+				A20000080000000000000008 /* DebugLogger.swift */,
+				A20000090000000000000009 /* PreprocessingManager.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		A40000070000000000000007 /* Rendering */ = {
+			isa = PBXGroup;
+			children = (
+				A20000100000000000000010 /* VisualEngine.swift */,
+				A20000290000000000000029 /* ShaderTypes.h */,
+				A40000110000000000000011 /* Shaders */,
+			);
+			path = Rendering;
+			sourceTree = "<group>";
+		};
+		A40000080000000000000008 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				A20000190000000000000019 /* AppColors.swift */,
+				A20000200000000000000020 /* AppFonts.swift */,
+				A40000120000000000000012 /* Fonts */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		A40000090000000000000009 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				A20000140000000000000014 /* KnobView.swift */,
+				A20000150000000000000015 /* ControlButton.swift */,
+				A20000160000000000000016 /* MediaThumbView.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		A40000100000000000000010 /* Modals */ = {
+			isa = PBXGroup;
+			children = (
+				A20000170000000000000017 /* LoadPackModal.swift */,
+				A20000180000000000000018 /* SavePackModal.swift */,
+			);
+			path = Modals;
+			sourceTree = "<group>";
+		};
+		A40000110000000000000011 /* Shaders */ = {
+			isa = PBXGroup;
+			children = (
+				A20000210000000000000021 /* BaseLayer.metal */,
+				A20000220000000000000022 /* Common.metal */,
+				A20000230000000000000023 /* Glitch.metal */,
+				A20000240000000000000024 /* PostProcess.metal */,
+			);
+			path = Shaders;
+			sourceTree = "<group>";
+		};
+		A40000120000000000000012 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				A20000260000000000000026 /* Rajdhani-Bold.ttf */,
+				A20000270000000000000027 /* Rajdhani-Regular.ttf */,
+				A20000280000000000000028 /* RobotoMono-Regular.ttf */,
+			);
+			path = Fonts;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A50000000000000000000000 /* MotionHub */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A70000000000000000000000 /* Build configuration list for PBXNativeTarget "MotionHub" */;
+			buildPhases = (
+				A50000010000000000000001 /* Sources */,
+				A30000000000000000000000 /* Frameworks */,
+				A50000020000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MotionHub;
+			productName = MotionHub;
+			productReference = A20000000000000000000000 /* MotionHub.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A60000000000000000000000 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					A50000000000000000000000 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = A70000010000000000000001 /* Build configuration list for PBXProject "MotionHub" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A40000000000000000000000;
+			productRefGroup = A40000020000000000000002 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A50000000000000000000000 /* MotionHub */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A50000020000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000250000000000000025 /* Assets.xcassets in Resources */,
+				A10000260000000000000026 /* Rajdhani-Bold.ttf in Resources */,
+				A10000270000000000000027 /* Rajdhani-Regular.ttf in Resources */,
+				A10000280000000000000028 /* RobotoMono-Regular.ttf in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A50000010000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000010000000000000001 /* MotionHubApp.swift in Sources */,
+				A10000020000000000000002 /* ContentView.swift in Sources */,
+				A10000030000000000000003 /* AppState.swift in Sources */,
+				A10000040000000000000004 /* InspirationPack.swift in Sources */,
+				A10000050000000000000005 /* AudioAnalyzer.swift in Sources */,
+				A10000060000000000000006 /* PackManager.swift in Sources */,
+				A10000070000000000000007 /* MIDIHandler.swift in Sources */,
+				A10000080000000000000008 /* DebugLogger.swift in Sources */,
+				A10000090000000000000009 /* PreprocessingManager.swift in Sources */,
+				A10000100000000000000010 /* VisualEngine.swift in Sources */,
+				A10000110000000000000011 /* InspirationPanel.swift in Sources */,
+				A10000120000000000000012 /* PreviewPanel.swift in Sources */,
+				A10000130000000000000013 /* ControlsPanel.swift in Sources */,
+				A10000140000000000000014 /* KnobView.swift in Sources */,
+				A10000150000000000000015 /* ControlButton.swift in Sources */,
+				A10000160000000000000016 /* MediaThumbView.swift in Sources */,
+				A10000170000000000000017 /* LoadPackModal.swift in Sources */,
+				A10000180000000000000018 /* SavePackModal.swift in Sources */,
+				A10000190000000000000019 /* AppColors.swift in Sources */,
+				A10000200000000000000020 /* AppFonts.swift in Sources */,
+				A10000210000000000000021 /* BaseLayer.metal in Sources */,
+				A10000220000000000000022 /* Common.metal in Sources */,
+				A10000230000000000000023 /* Glitch.metal in Sources */,
+				A10000240000000000000024 /* PostProcess.metal in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A80000000000000000000000 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		A80000010000000000000001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		A80000020000000000000002 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = MotionHub/MotionHub/MotionHub.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MotionHub/MotionHub/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Motion Hub";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Motion Hub needs microphone access to analyze audio for visual generation";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.motionhub.MotionHub;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "MotionHub/MotionHub/Rendering/ShaderTypes.h";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A80000030000000000000003 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = MotionHub/MotionHub/MotionHub.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MotionHub/MotionHub/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Motion Hub";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Motion Hub needs microphone access to analyze audio for visual generation";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.motionhub.MotionHub;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "MotionHub/MotionHub/Rendering/ShaderTypes.h";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A70000000000000000000000 /* Build configuration list for PBXNativeTarget "MotionHub" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A80000020000000000000002 /* Debug */,
+				A80000030000000000000003 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A70000010000000000000001 /* Build configuration list for PBXProject "MotionHub" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A80000000000000000000000 /* Debug */,
+				A80000010000000000000001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A60000000000000000000000 /* Project object */;
+}

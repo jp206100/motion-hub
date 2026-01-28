@@ -64,7 +64,7 @@ class TextureLoader {
                 .appendingPathComponent("artifacts")
                 .appendingPathComponent("textures")
 
-            for textureArtifact in artifacts.textures {
+            for textureArtifact in artifacts.artifacts.textures {
                 if textures.count >= maxLoadedTextures {
                     break
                 }
@@ -78,7 +78,7 @@ class TextureLoader {
             }
 
             // Extract color palette from artifacts
-            if let palette = artifacts.colorPalettes.first {
+            if let palette = artifacts.artifacts.colorPalettes.first {
                 extractedPalette = palette.colors.prefix(6).map { hexColor in
                     colorFromHex(hexColor)
                 }

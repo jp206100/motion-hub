@@ -76,7 +76,8 @@ struct KnobView: View {
                         }
 
                         let delta = lastDragValue - gesture.location.y
-                        let sensitivity: CGFloat = 0.005
+                        // Use higher sensitivity for stepped knobs since they need bigger jumps
+                        let sensitivity: CGFloat = stepped ? 0.015 : 0.005
                         var newValue = value + Double(delta * sensitivity)
                         newValue = max(0, min(1, newValue))
 

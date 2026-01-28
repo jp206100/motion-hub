@@ -10,12 +10,12 @@ import SwiftUI
 
 @main
 struct MotionHubApp: App {
-    // Testing StateObjects one by one
+    // All StateObjects enabled - testing with simple view (no Metal)
     @StateObject private var appState = AppState()
-    @StateObject private var audioAnalyzer = AudioAnalyzer()  // TEST 1
-    // @StateObject private var midiHandler = MIDIHandler()
-    // @StateObject private var packManager = PackManager()
-    // @StateObject private var preprocessingManager = PreprocessingManager()
+    @StateObject private var audioAnalyzer = AudioAnalyzer()
+    @StateObject private var midiHandler = MIDIHandler()
+    @StateObject private var packManager = PackManager()
+    @StateObject private var preprocessingManager = PreprocessingManager()
 
     init() {
         print("🚀 MotionHubApp init starting...")
@@ -26,17 +26,29 @@ struct MotionHubApp: App {
 
     var body: some Scene {
         WindowGroup {
-            // TEMP: Minimal test view
-            Text("Window Test - AudioAnalyzer enabled")
-                .font(.largeTitle)
-                .frame(width: 800, height: 600)
-                .background(Color.black)
-                .foregroundColor(.white)
-                .onAppear {
-                    print("🚀 Test view appeared!")
-                }
+            // Simple test view - no Metal rendering
+            VStack(spacing: 20) {
+                Text("Motion Hub - All StateObjects Enabled")
+                    .font(.largeTitle)
+                    .foregroundColor(.white)
+                Text("No Metal rendering in this test")
+                    .foregroundColor(.gray)
+                Text("If this works without hanging, the issue is with Metal/PreviewPanel")
+                    .foregroundColor(.gray)
+                    .font(.caption)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black)
+            .environmentObject(appState)
+            .environmentObject(audioAnalyzer)
+            .environmentObject(midiHandler)
+            .environmentObject(packManager)
+            .environmentObject(preprocessingManager)
+            .onAppear {
+                print("🚀 Test view appeared!")
+            }
         }
-        .defaultSize(width: 800, height: 600)
+        .defaultSize(width: 1000, height: 700)
         .commands {
             CommandGroup(replacing: .newItem) {}
             CommandMenu("Pack") {

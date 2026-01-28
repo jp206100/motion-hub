@@ -104,6 +104,10 @@ class VisualEngine {
         // Create placeholder texture
         placeholderTexture = textureLoader?.createPlaceholderTexture()
 
+        // Create default empty palette buffer
+        paletteBuffer = createDefaultPaletteBuffer()
+        print("🎨 Default palette buffer created")
+
         observeResetNotification()
         print("🎨 VisualEngine init complete")
     }
@@ -190,6 +194,31 @@ class VisualEngine {
         }
     }
 
+    private func createDefaultPaletteBuffer() -> MTLBuffer? {
+        // ColorPalette struct: 6 x simd_float4 (colors) + 1 x int32 (colorCount)
+        // simd_float4 = 16 bytes, int32 = 4 bytes
+        // Total: 6 * 16 + 4 = 100 bytes, but we add padding to 104 for alignment
+        var paletteData: [Float] = []
+
+        // 6 colors (all zeros)
+        for _ in 0..<6 {
+            paletteData.append(0) // r
+            paletteData.append(0) // g
+            paletteData.append(0) // b
+            paletteData.append(0) // a
+        }
+
+        // colorCount = 0 (as Int32, reinterpreted as Float for the buffer)
+        let colorCount: Int32 = 0
+        paletteData.append(Float(bitPattern: UInt32(bitPattern: colorCount)))
+
+        return device.makeBuffer(
+            bytes: paletteData,
+            length: paletteData.count * MemoryLayout<Float>.stride,
+            options: .storageModeShared
+        )
+    }
+
     private func createRenderTargets(size: CGSize) {
         guard size.width > 0 && size.height > 0 else { return }
 
@@ -243,7 +272,8 @@ class VisualEngine {
         inspirationTextures.removeAll()
         textureLoader?.clearAll()
         uniforms.textureCount = 0
-        paletteBuffer = nil
+        // Reset to default palette (don't set to nil - shader requires buffer)
+        paletteBuffer = createDefaultPaletteBuffer()
     }
 
     // MARK: - Update

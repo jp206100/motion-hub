@@ -10,9 +10,9 @@ import SwiftUI
 
 @main
 struct MotionHubApp: App {
-    // TEMP: Comment out most StateObjects to test window creation
+    // Testing StateObjects one by one
     @StateObject private var appState = AppState()
-    // @StateObject private var audioAnalyzer = AudioAnalyzer()
+    @StateObject private var audioAnalyzer = AudioAnalyzer()  // TEST 1
     // @StateObject private var midiHandler = MIDIHandler()
     // @StateObject private var packManager = PackManager()
     // @StateObject private var preprocessingManager = PreprocessingManager()
@@ -27,7 +27,7 @@ struct MotionHubApp: App {
     var body: some Scene {
         WindowGroup {
             // TEMP: Minimal test view
-            Text("Window Test - If you see this, it works!")
+            Text("Window Test - AudioAnalyzer enabled")
                 .font(.largeTitle)
                 .frame(width: 800, height: 600)
                 .background(Color.black)

@@ -19,6 +19,28 @@ struct ContentView: View {
 
     var body: some View {
         let _ = print("🖼️ ContentView body being evaluated")
+
+        // TEMPORARY: Simple test view to diagnose window issue
+        // Comment out this block and uncomment the full UI below once window works
+        VStack {
+            Text("Motion Hub - Test View")
+                .font(.largeTitle)
+                .foregroundColor(.white)
+            Text("If you see this, the window is working!")
+                .foregroundColor(.gray)
+
+            // Add the Metal preview to test rendering
+            PreviewPanel()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black)
+        .onAppear {
+            print("🖼️ ContentView onAppear triggered")
+            audioAnalyzer.refreshDevices()
+        }
+
+        /* FULL UI - Uncomment when window works
         ZStack {
             // Main three-panel layout
             HStack(spacing: 0) {
@@ -64,6 +86,7 @@ struct ContentView: View {
             // Note: enableAudio() now has a guard against race conditions
             audioAnalyzer.refreshDevices()
         }
+        */
     }
 }
 

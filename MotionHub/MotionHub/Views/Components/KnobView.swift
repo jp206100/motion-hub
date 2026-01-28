@@ -65,16 +65,19 @@ struct KnobView: View {
                     .fill(AppColors.bgDarkest)
                     .frame(width: 8, height: 8)
             }
-            .gesture(
+            .contentShape(Circle())  // Ensure the entire knob area is tappable
+            .highPriorityGesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { gesture in
                         if !isDragging {
                             isDragging = true
                             lastDragValue = gesture.location.y
+                            print("🎛️ Knob '\(label)' drag started")
                         }
 
                         let delta = lastDragValue - gesture.location.y
-                        let sensitivity: CGFloat = 0.005
+                        // Use higher sensitivity for stepped knobs since they need bigger jumps
+                        let sensitivity: CGFloat = stepped ? 0.015 : 0.005
                         var newValue = value + Double(delta * sensitivity)
                         newValue = max(0, min(1, newValue))
 
@@ -84,11 +87,15 @@ struct KnobView: View {
                             newValue = Double(stepIndex) / Double(stepCount - 1)
                         }
 
+                        if newValue != value {
+                            print("🎛️ Knob '\(label)' value changing: \(value) -> \(newValue)")
+                        }
                         value = newValue
                         lastDragValue = gesture.location.y
                     }
                     .onEnded { _ in
                         isDragging = false
+                        print("🎛️ Knob '\(label)' drag ended")
                     }
             )
 

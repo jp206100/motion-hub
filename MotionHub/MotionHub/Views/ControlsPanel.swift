@@ -177,12 +177,21 @@ struct ControlsPanel: View {
                         .font(AppFonts.mono(size: 11))
                         .foregroundColor(AppColors.textPrimary)
                     Spacer()
+                    // Debug info
+                    Text("(\(audioAnalyzer.availableDevices.count) devices)")
+                        .font(AppFonts.mono(size: 9))
+                        .foregroundColor(AppColors.textDim)
                     Button(action: {
+                        print("🎤 User clicked refresh button")
                         audioAnalyzer.refreshDevices()
                     }) {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 10))
-                            .foregroundColor(AppColors.textSecondary)
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 10))
+                            Text("Refresh")
+                                .font(AppFonts.mono(size: 9))
+                        }
+                        .foregroundColor(AppColors.accent)
                     }
                     .buttonStyle(.plain)
                     .help("Refresh audio devices")

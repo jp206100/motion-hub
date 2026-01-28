@@ -47,6 +47,8 @@ class AudioAnalyzer: ObservableObject {
     // MARK: - State
     private var isRunning = false
     private var isSetupComplete = false
+    private var isEnablingAudio = false  // Guard against race condition
+    private var isRequestingPermission = false  // Guard against multiple permission requests
 
     init() {
         print("🎤 AudioAnalyzer init() starting...")
@@ -72,6 +74,12 @@ class AudioAnalyzer: ObservableObject {
     // MARK: - Permission Handling
 
     func requestMicrophonePermission() {
+        // Guard against multiple permission requests
+        guard !isRequestingPermission else {
+            print("🎤 requestMicrophonePermission() skipped - already requesting")
+            return
+        }
+
         let status = AVCaptureDevice.authorizationStatus(for: .audio)
         print("🎤 requestMicrophonePermission() - status: \(status.rawValue)")
 
@@ -87,9 +95,11 @@ class AudioAnalyzer: ObservableObject {
         case .notDetermined:
             print("🎤 Permission NOT DETERMINED - requesting...")
             DebugLogger.shared.info("Requesting microphone permission...", context: "Audio")
+            isRequestingPermission = true
             AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
                 print("🎤 Permission request result: \(granted)")
                 DispatchQueue.main.async {
+                    self?.isRequestingPermission = false
                     if granted {
                         DebugLogger.shared.info("Microphone permission granted", context: "Audio")
                         self?.permissionStatus = .granted
@@ -122,63 +132,122 @@ class AudioAnalyzer: ObservableObject {
     }
 
     func refreshDevices() {
+        print("🎤 refreshDevices() called")
         DebugLogger.shared.info("Refreshing audio devices...", context: "Audio")
         // Re-check permission status first
         let status = AVCaptureDevice.authorizationStatus(for: .audio)
+        print("🎤 Current permission status: \(status.rawValue) (0=notDetermined, 1=restricted, 2=denied, 3=authorized)")
         DebugLogger.shared.info("Current permission status: \(status.rawValue)", context: "Audio")
 
         if status == .authorized {
+            print("🎤 Permission AUTHORIZED - loading devices on background thread...")
             DispatchQueue.main.async {
                 self.permissionStatus = .granted
             }
-            loadAvailableDevices()
+            // Load devices on background thread to avoid blocking UI
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                self?.loadAvailableDevices()
+            }
         } else if status == .notDetermined {
+            print("🎤 Permission NOT DETERMINED - requesting...")
             requestMicrophonePermission()
         } else {
+            print("🎤 Permission DENIED or RESTRICTED - still trying to load devices...")
             DispatchQueue.main.async {
                 self.permissionStatus = .denied
             }
-            // Still try to load devices - Core Audio enumeration might work without permission
-            loadAvailableDevices()
+            // Still try to load devices on background thread - Core Audio enumeration might work without permission
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                self?.loadAvailableDevices()
+            }
         }
     }
 
     func enableAudio() {
-        guard !isAudioAvailable else { return }
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+        // Synchronous guards to prevent race condition
+        // Both isEnablingAudio and isAudioAvailable must be checked
+        guard !isAudioAvailable, !isEnablingAudio else {
+            print("🎤 enableAudio() skipped - already enabling or available")
+            return
+        }
+
+        // Set flag synchronously BEFORE async dispatch to prevent race
+        isEnablingAudio = true
+        print("🎤 enableAudio() starting initialization...")
+
+        // Add small delay to let permission system settle before accessing audio hardware
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.1) { [weak self] in
             self?.initializeAudioEngine()
         }
     }
 
     private func initializeAudioEngine() {
+        print("🎤 initializeAudioEngine() starting on background thread...")
         let hasDevices = safeCheckForInputDevices()
 
         guard hasDevices else {
-            print("No audio input devices available or CoreAudio unavailable")
+            print("🎤 No audio input devices available or CoreAudio unavailable")
             DispatchQueue.main.async {
+                self.isEnablingAudio = false  // Reset flag so it can be retried
                 self.safeLoadAvailableDevices()
             }
             return
         }
 
+        print("🎤 Creating AVAudioEngine...")
         let engine = AVAudioEngine()
         let input = engine.inputNode
 
         let hardwareFormat = input.outputFormat(forBus: 0)
         guard hardwareFormat.sampleRate > 0 && hardwareFormat.channelCount > 0 else {
-            print("Audio input not available - no valid hardware format")
+            print("🎤 Audio input not available - no valid hardware format")
             DispatchQueue.main.async {
+                self.isEnablingAudio = false  // Reset flag so it can be retried
                 self.safeLoadAvailableDevices()
             }
             return
         }
 
+        print("🎤 Hardware format: \(hardwareFormat.sampleRate) Hz, \(hardwareFormat.channelCount) channels")
+
+        // Create audio format for tap - do this on background thread
+        guard let format = AVAudioFormat(
+            commonFormat: .pcmFormatFloat32,
+            sampleRate: hardwareFormat.sampleRate,
+            channels: 1,
+            interleaved: false
+        ) else {
+            print("🎤 Failed to create audio format")
+            DispatchQueue.main.async {
+                self.isEnablingAudio = false
+                self.safeLoadAvailableDevices()
+            }
+            return
+        }
+
+        // Install tap on background thread - this can block!
+        print("🎤 Installing audio tap on background thread...")
+        input.installTap(
+            onBus: 0,
+            bufferSize: AVAudioFrameCount(self.bufferSize),
+            format: format
+        ) { [weak self] buffer, _ in
+            self?.processAudioBuffer(buffer)
+        }
+        print("🎤 Audio tap installed")
+
+        // DON'T start the engine automatically - let user select device first
+        // Just update state to indicate audio is available
+        print("🎤 Audio engine ready, updating state on main thread...")
         DispatchQueue.main.async {
             self.audioEngine = engine
             self.inputNode = input
+            self.sampleRate = hardwareFormat.sampleRate
             self.isAudioAvailable = true
-            self.setupAudioEngine()
+            self.isSetupComplete = true
+            self.isEnablingAudio = false  // Reset flag - initialization complete
             self.safeLoadAvailableDevices()
+            print("🎤 Audio engine initialization complete!")
         }
     }
 
@@ -232,7 +301,10 @@ class AudioAnalyzer: ObservableObject {
         #if os(macOS)
         guard isAudioAvailable || availableDevices.isEmpty else { return }
         #endif
-        loadAvailableDevices()
+        // Load devices on background thread to avoid blocking UI
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.loadAvailableDevices()
+        }
     }
 
     deinit {
@@ -301,6 +373,7 @@ class AudioAnalyzer: ObservableObject {
         )
 
         guard status == noErr else {
+            print("🎤 ERROR: Failed to get device list size: OSStatus \(status)")
             DebugLogger.shared.error("Failed to get device list size: OSStatus \(status)", context: "Audio")
             return
         }
@@ -308,6 +381,11 @@ class AudioAnalyzer: ObservableObject {
         let deviceCount = Int(dataSize) / MemoryLayout<AudioDeviceID>.size
         print("🎤 Found \(deviceCount) total audio devices")
         DebugLogger.shared.debug("Found \(deviceCount) total audio devices", context: "Audio")
+
+        if deviceCount == 0 {
+            print("🎤 ERROR: No audio devices found at all!")
+            return
+        }
 
         var deviceIDs = [AudioDeviceID](repeating: 0, count: deviceCount)
 
@@ -321,39 +399,49 @@ class AudioAnalyzer: ObservableObject {
         )
 
         guard status == noErr else {
+            print("🎤 ERROR: Failed to get device list: OSStatus \(status)")
             DebugLogger.shared.error("Failed to get device list: OSStatus \(status)", context: "Audio")
             return
         }
 
         var devices: [AudioDevice] = []
+        var allDeviceNames: [String] = []
 
         for deviceID in deviceIDs {
             if let device = getDeviceInfo(deviceID: deviceID) {
+                allDeviceNames.append(device.name)
                 let hasInput = hasInputChannels(deviceID: deviceID)
+                print("🎤 Device: '\(device.name)' (ID: \(device.id)) - hasInput: \(hasInput)")
                 DebugLogger.shared.debug("Device: \(device.name) (ID: \(device.id)) - hasInput: \(hasInput)", context: "Audio")
                 // Only include input devices
                 if hasInput {
                     devices.append(device)
                 }
             } else {
+                print("🎤 Could not get info for device ID: \(deviceID)")
                 DebugLogger.shared.debug("Could not get info for device ID: \(deviceID)", context: "Audio")
             }
         }
 
+        print("🎤 All devices found: \(allDeviceNames.joined(separator: ", "))")
         print("🎤 Total INPUT devices found: \(devices.count)")
         DebugLogger.shared.info("Total input devices found: \(devices.count)", context: "Audio")
+
         if devices.isEmpty {
             print("🎤 WARNING: No input devices found!")
+            print("🎤 This could mean:")
+            print("🎤   1. No microphone or audio input devices connected")
+            print("🎤   2. BlackHole or other virtual audio devices not installed")
+            print("🎤   3. Devices don't report input channels correctly")
             DebugLogger.shared.warning("No input devices found! Check microphone permissions.", context: "Audio")
         }
 
         DispatchQueue.main.async {
-            print("🎤 Setting availableDevices to \(devices.count) devices")
+            print("🎤 Setting availableDevices to \(devices.count) devices on main thread")
             self.availableDevices = devices
-            if let blackHole = devices.first(where: { $0.name.lowercased().contains("blackhole") }) {
-                DebugLogger.shared.info("Auto-selecting BlackHole: \(blackHole.name)", context: "Audio")
-                self.selectedDevice = blackHole
-            }
+            // Note: Don't auto-select device here - user should manually select
+            // Auto-selection was causing the app to freeze by triggering
+            // selectInputDevice which blocks the main thread
         }
         #endif
     }
@@ -553,24 +641,84 @@ class AudioAnalyzer: ObservableObject {
     func selectInputDevice(_ device: AudioDevice) {
         guard selectedDevice?.id != device.id else { return }
 
+        print("🎤 selectInputDevice: \(device.name)")
         selectedDevice = device
 
         #if os(macOS)
         stop()
         inputNode?.removeTap(onBus: 0)
 
+        // Do all audio engine setup on background thread to avoid blocking UI
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
 
+            print("🎤 Creating new audio engine on background thread...")
             let engine = AVAudioEngine()
+            let input = engine.inputNode
 
-            DispatchQueue.main.async {
-                self.audioEngine = engine
-                self.inputNode = engine.inputNode
-                self.configureInputDevice(deviceID: device.id)
-                self.isSetupComplete = false
-                self.setupAudioEngine()
-                self.start()
+            // Configure device on background thread
+            if let audioUnit = input.audioUnit {
+                var deviceID = device.id
+                let status = AudioUnitSetProperty(
+                    audioUnit,
+                    kAudioOutputUnitProperty_CurrentDevice,
+                    kAudioUnitScope_Global,
+                    0,
+                    &deviceID,
+                    UInt32(MemoryLayout<AudioDeviceID>.size)
+                )
+                if status != noErr {
+                    print("🎤 Failed to set audio input device: \(status)")
+                } else {
+                    print("🎤 Audio device configured successfully")
+                }
+            }
+
+            // Get hardware format
+            let hardwareFormat = input.outputFormat(forBus: 0)
+            guard hardwareFormat.sampleRate > 0 else {
+                print("🎤 Audio input not available - no valid hardware format")
+                return
+            }
+
+            print("🎤 Hardware format: \(hardwareFormat.sampleRate) Hz")
+
+            guard let format = AVAudioFormat(
+                commonFormat: .pcmFormatFloat32,
+                sampleRate: hardwareFormat.sampleRate,
+                channels: 1,
+                interleaved: false
+            ) else {
+                print("🎤 Failed to create audio format")
+                return
+            }
+
+            // Install tap on background thread
+            input.installTap(
+                onBus: 0,
+                bufferSize: AVAudioFrameCount(self.bufferSize),
+                format: format
+            ) { [weak self] buffer, _ in
+                self?.processAudioBuffer(buffer)
+            }
+
+            print("🎤 Audio tap installed, starting engine...")
+
+            // Start engine on background thread
+            do {
+                try engine.start()
+                print("🎤 Audio engine started successfully")
+
+                // Update state on main thread
+                DispatchQueue.main.async {
+                    self.audioEngine = engine
+                    self.inputNode = input
+                    self.sampleRate = hardwareFormat.sampleRate
+                    self.isSetupComplete = true
+                    self.isRunning = true
+                }
+            } catch {
+                print("🎤 Failed to start audio engine: \(error)")
             }
         }
         #endif

@@ -10,11 +10,12 @@ import MetalKit
 
 struct PreviewPanel: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var audioAnalyzer: AudioAnalyzer
 
     var body: some View {
         ZStack {
             // Metal view for rendering
-            MetalPreviewView()
+            MetalPreviewView(appState: appState, audioAnalyzer: audioAnalyzer)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             // Footer with stats
@@ -102,48 +103,121 @@ struct PreviewPanel: View {
 
 // MARK: - Metal Preview View
 struct MetalPreviewView: NSViewRepresentable {
+    let appState: AppState
+    let audioAnalyzer: AudioAnalyzer
+
     func makeNSView(context: Context) -> MTKView {
+        print("🎨 MetalPreviewView makeNSView starting...")
         let mtkView = MTKView()
 
         // Safely get Metal device - may be nil on some systems
         if let device = MTLCreateSystemDefaultDevice() {
+            print("🎨 Metal device created: \(device.name)")
             mtkView.device = device
             mtkView.colorPixelFormat = .bgra8Unorm
             mtkView.clearColor = MTLClearColor(red: 0.04, green: 0.04, blue: 0.04, alpha: 1.0)
             mtkView.delegate = context.coordinator
+            mtkView.preferredFramesPerSecond = appState.targetFPS
+
+            // Start paused, unpause after setup
+            mtkView.isPaused = true
+            mtkView.enableSetNeedsDisplay = false
+
+            // Initialize the visual engine with the device
+            print("🎨 Setting up VisualEngine...")
+            context.coordinator.setupVisualEngine(device: device, appState: appState)
+
+            // Enable continuous rendering for smooth animations
+            if context.coordinator.visualEngine != nil {
+                print("🎨 VisualEngine created successfully - enabling continuous rendering")
+                mtkView.isPaused = false
+                mtkView.enableSetNeedsDisplay = false
+            } else {
+                print("🎨 ERROR: VisualEngine creation failed!")
+            }
         } else {
-            print("Metal is not available on this system")
+            print("🎨 ERROR: Metal is not available on this system")
         }
 
+        print("🎨 MetalPreviewView makeNSView complete")
         return mtkView
     }
 
     func updateNSView(_ nsView: MTKView, context: Context) {
-        // Updates handled by delegate
+        // Update target FPS if changed
+        nsView.preferredFramesPerSecond = appState.targetFPS
+
+        // Update coordinator's reference to appState and audioAnalyzer
+        context.coordinator.appState = appState
+        context.coordinator.audioAnalyzer = audioAnalyzer
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator()
+        Coordinator(appState: appState, audioAnalyzer: audioAnalyzer)
     }
 
     class Coordinator: NSObject, MTKViewDelegate {
+        var appState: AppState
+        var audioAnalyzer: AudioAnalyzer
+        var visualEngine: VisualEngine?
+
+        // Frame timing
+        private var lastFrameTime: CFAbsoluteTime = CFAbsoluteTimeGetCurrent()
+        private var frameCount: Int = 0
+        private var fpsUpdateTime: CFAbsoluteTime = CFAbsoluteTimeGetCurrent()
+        private var hasLoggedFirstFrame = false
+
+        init(appState: AppState, audioAnalyzer: AudioAnalyzer) {
+            self.appState = appState
+            self.audioAnalyzer = audioAnalyzer
+            super.init()
+        }
+
+        func setupVisualEngine(device: MTLDevice, appState: AppState) {
+            self.visualEngine = VisualEngine(device: device)
+            self.visualEngine?.appState = appState
+            print("🎨 VisualEngine setup complete: \(self.visualEngine != nil ? "success" : "failed")")
+        }
+
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
-            // Handle resize
+            print("🎨 Drawable size changed: \(size)")
         }
 
         func draw(in view: MTKView) {
-            // Rendering will be implemented by VisualEngine
-            // For now, just clear the view
-            guard let commandBuffer = view.device?.makeCommandQueue()?.makeCommandBuffer(),
-                  let renderPassDescriptor = view.currentRenderPassDescriptor,
-                  let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor),
-                  let drawable = view.currentDrawable else {
+            if !hasLoggedFirstFrame {
+                print("🎨 First draw call")
+                hasLoggedFirstFrame = true
+            }
+
+            // Calculate delta time
+            let currentTime = CFAbsoluteTimeGetCurrent()
+            let deltaTime = Float(currentTime - lastFrameTime)
+            lastFrameTime = currentTime
+
+            // Update FPS counter (only once per second)
+            frameCount += 1
+            if currentTime - fpsUpdateTime >= 1.0 {
+                let fps = frameCount
+                frameCount = 0
+                fpsUpdateTime = currentTime
+
+                // Update FPS on main thread
+                DispatchQueue.main.async { [weak self] in
+                    self?.appState.currentFPS = fps
+                }
+            }
+
+            // Update and render using VisualEngine
+            guard let engine = visualEngine else {
                 return
             }
 
-            renderEncoder.endEncoding()
-            commandBuffer.present(drawable)
-            commandBuffer.commit()
+            engine.update(
+                deltaTime: deltaTime,
+                audioLevels: appState.audioLevels,
+                appState: appState
+            )
+            engine.render(in: view)
         }
     }
 }

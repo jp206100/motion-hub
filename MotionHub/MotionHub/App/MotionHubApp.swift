@@ -14,6 +14,7 @@ struct MotionHubApp: App {
     @StateObject private var audioAnalyzer = AudioAnalyzer()
     @StateObject private var midiHandler = MIDIHandler()
     @StateObject private var packManager = PackManager()
+    @StateObject private var preprocessingManager = PreprocessingManager()
 
     init() {
         // Set up app directories
@@ -27,6 +28,7 @@ struct MotionHubApp: App {
                 .environmentObject(audioAnalyzer)
                 .environmentObject(midiHandler)
                 .environmentObject(packManager)
+                .environmentObject(preprocessingManager)
                 .preferredColorScheme(.dark)
         }
         .windowStyle(.hiddenTitleBar)

@@ -2,37 +2,31 @@
 //  AppFonts.swift
 //  Motion Hub
 //
-//  Typography system
+//  Typography system - using system fonts for reliability
 //
 
 import SwiftUI
 
 enum AppFonts {
-    // Display font: Rajdhani (headers, labels, buttons)
-    // Fallback: SF Pro Display
+    // Display font: System default (clean, modern look)
     static func display(size: CGFloat = 14) -> Font {
-        Font.custom("Rajdhani", size: size)
-            .weight(.regular)
+        Font.system(size: size, weight: .regular, design: .default)
     }
 
     static func displayBold(size: CGFloat = 14) -> Font {
-        Font.custom("Rajdhani-Bold", size: size)
-            .weight(.bold)
+        Font.system(size: size, weight: .bold, design: .default)
     }
 
-    // Mono font: IBM Plex Mono (values, metadata, code)
-    // Fallback: SF Mono
+    // Mono font: System monospaced (values, metadata, code)
     static func mono(size: CGFloat = 12) -> Font {
-        Font.custom("IBMPlexMono", size: size)
-            .monospaced()
+        Font.system(size: size, weight: .regular, design: .monospaced)
     }
 
     static func monoRegular(size: CGFloat = 12) -> Font {
-        Font.custom("IBMPlexMono-Regular", size: size)
-            .monospaced()
+        Font.system(size: size, weight: .regular, design: .monospaced)
     }
 
-    // System fallbacks when custom fonts aren't available
+    // System fallbacks (same as above now)
     static let displayFallback = Font.system(.body, design: .default)
     static let monoFallback = Font.system(.body, design: .monospaced)
 }

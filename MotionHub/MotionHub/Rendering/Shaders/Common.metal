@@ -185,7 +185,7 @@ float radialPattern(float2 uv, float segments, float time) {
     float2 centered = uv * 2.0 - 1.0;
     float angle = atan2(centered.y, centered.x);
     float radius = length(centered);
-    return sin(angle * segments + time) * 0.5 + 0.5;
+    return sin(angle * segments + time + radius * 2.0) * 0.5 + 0.5;
 }
 
 // Kaleidoscope fold

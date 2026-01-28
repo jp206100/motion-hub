@@ -494,7 +494,14 @@ class VisualEngine {
         if !inspirationTextures.isEmpty, let loader = textureLoader {
             let randomTextures = loader.getRandomTextures(count: 4, seed: currentSeed)
             if !randomTextures.isEmpty {
-                inspirationTextures = randomTextures + inspirationTextures.filter { !randomTextures.contains($0 as AnyObject as! MTLTexture) }
+                // Shuffle textures by putting random selection first
+                var newOrder = randomTextures
+                for tex in inspirationTextures {
+                    if !newOrder.contains(where: { $0 === tex }) {
+                        newOrder.append(tex)
+                    }
+                }
+                inspirationTextures = newOrder
             }
         }
 

@@ -65,8 +65,8 @@ float3 patternCellular(float2 uv, float t, float audioMod, float intensity) {
     float v = voronoi(uv * scale);
     float v2 = voronoi(uv * scale * 2.0 + 10.0);
 
-    // Edge detection on cells
-    float edge = smoothstep(0.0, 0.1 + audioMod * 0.1, v);
+    // Edge detection on cells - combine both voronoi layers
+    float edge = smoothstep(0.0, 0.1 + audioMod * 0.1, v * 0.7 + v2 * 0.3);
 
     // Color based on cell distance
     float hue = fract(v * 0.5 + t * 0.1);

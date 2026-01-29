@@ -13,6 +13,7 @@ struct MotionHubApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var audioAnalyzer = AudioAnalyzer()
     @StateObject private var midiHandler = MIDIHandler()
+    @StateObject private var oscHandler = OSCHandler()
     @StateObject private var packManager = PackManager()
     @StateObject private var preprocessingManager = PreprocessingManager()
 
@@ -26,9 +27,15 @@ struct MotionHubApp: App {
                 .environmentObject(appState)
                 .environmentObject(audioAnalyzer)
                 .environmentObject(midiHandler)
+                .environmentObject(oscHandler)
                 .environmentObject(packManager)
                 .environmentObject(preprocessingManager)
                 .preferredColorScheme(.dark)
+                .onAppear {
+                    // Wire up handlers to app state
+                    midiHandler.appState = appState
+                    oscHandler.appState = appState
+                }
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1400, height: 900)

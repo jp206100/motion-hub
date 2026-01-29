@@ -47,9 +47,9 @@ struct PreviewPanel: View {
             HStack(spacing: 6) {
                 Text("AUDIO")
                     .font(AppFonts.display(size: 10))
-                    .foregroundColor(AppColors.textSecondary)
+                    .foregroundColor(audioAnalyzer.selectedDevice != nil && audioAnalyzer.levels.overall > 0.01 ? AppColors.accent : AppColors.textSecondary)
 
-                audioLevelBar(appState.audioLevels.overall)
+                audioLevelBar(audioAnalyzer.levels.overall)
             }
 
             Spacer()

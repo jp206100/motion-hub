@@ -248,7 +248,7 @@ class TextureLoader {
         var selected: [MTLTexture] = []
         var rng = seed
 
-        for i in 0..<min(count, allTextures.count) {
+        for _ in 0..<min(count, allTextures.count) {
             // Simple LCG random
             rng = rng &* 1103515245 &+ 12345
             let index = Int(rng >> 16) % allTextures.count

@@ -201,7 +201,7 @@ class VisualEngine {
         // - padding to 16-byte alignment = 12 bytes
         // Total = 112 bytes
 
-        var paletteData = [UInt8](repeating: 0, count: 112)
+        let paletteData = [UInt8](repeating: 0, count: 112)
         // All zeros = 6 black colors with colorCount = 0
 
         return device.makeBuffer(

@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		A10000010000000000000001 /* MotionHubApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000001 /* MotionHubApp.swift */; };
 		A10000020000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000020000000000000002 /* ContentView.swift */; };
+		A10000260000000000000026 /* FullScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000260000000000000026 /* FullScreenView.swift */; };
 		A10000030000000000000003 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000030000000000000003 /* AppState.swift */; };
 		A10000040000000000000004 /* InspirationPack.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000040000000000000004 /* InspirationPack.swift */; };
 		A10000050000000000000005 /* AudioAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000050000000000000005 /* AudioAnalyzer.swift */; };
@@ -17,6 +18,7 @@
 		A10000080000000000000008 /* DebugLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000080000000000000008 /* DebugLogger.swift */; };
 		A10000090000000000000009 /* PreprocessingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000090000000000000009 /* PreprocessingManager.swift */; };
 		A10000100000000000000010 /* VisualEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000100000000000000010 /* VisualEngine.swift */; };
+		A10000270000000000000027 /* TextureLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000270000000000000027 /* TextureLoader.swift */; };
 		A10000110000000000000011 /* InspirationPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000110000000000000011 /* InspirationPanel.swift */; };
 		A10000120000000000000012 /* PreviewPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000120000000000000012 /* PreviewPanel.swift */; };
 		A10000130000000000000013 /* ControlsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000130000000000000013 /* ControlsPanel.swift */; };
@@ -38,6 +40,7 @@
 		A20000000000000000000000 /* MotionHub.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MotionHub.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000010000000000000001 /* MotionHubApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionHubApp.swift; sourceTree = "<group>"; };
 		A20000020000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A20000260000000000000026 /* FullScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullScreenView.swift; sourceTree = "<group>"; };
 		A20000030000000000000003 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		A20000040000000000000004 /* InspirationPack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspirationPack.swift; sourceTree = "<group>"; };
 		A20000050000000000000005 /* AudioAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioAnalyzer.swift; sourceTree = "<group>"; };
@@ -46,6 +49,7 @@
 		A20000080000000000000008 /* DebugLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLogger.swift; sourceTree = "<group>"; };
 		A20000090000000000000009 /* PreprocessingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreprocessingManager.swift; sourceTree = "<group>"; };
 		A20000100000000000000010 /* VisualEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualEngine.swift; sourceTree = "<group>"; };
+		A20000270000000000000027 /* TextureLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextureLoader.swift; sourceTree = "<group>"; };
 		A20000110000000000000011 /* InspirationPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspirationPanel.swift; sourceTree = "<group>"; };
 		A20000120000000000000012 /* PreviewPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewPanel.swift; sourceTree = "<group>"; };
 		A20000130000000000000013 /* ControlsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlsPanel.swift; sourceTree = "<group>"; };
@@ -130,6 +134,7 @@
 			isa = PBXGroup;
 			children = (
 				A20000020000000000000002 /* ContentView.swift */,
+				A20000260000000000000026 /* FullScreenView.swift */,
 				A20000110000000000000011 /* InspirationPanel.swift */,
 				A20000120000000000000012 /* PreviewPanel.swift */,
 				A20000130000000000000013 /* ControlsPanel.swift */,
@@ -155,6 +160,7 @@
 			isa = PBXGroup;
 			children = (
 				A20000100000000000000010 /* VisualEngine.swift */,
+				A20000270000000000000027 /* TextureLoader.swift */,
 				A20000290000000000000029 /* ShaderTypes.h */,
 				A40000110000000000000011 /* Shaders */,
 			);
@@ -271,6 +277,7 @@
 			files = (
 				A10000010000000000000001 /* MotionHubApp.swift in Sources */,
 				A10000020000000000000002 /* ContentView.swift in Sources */,
+				A10000260000000000000026 /* FullScreenView.swift in Sources */,
 				A10000030000000000000003 /* AppState.swift in Sources */,
 				A10000040000000000000004 /* InspirationPack.swift in Sources */,
 				A10000050000000000000005 /* AudioAnalyzer.swift in Sources */,
@@ -279,6 +286,7 @@
 				A10000080000000000000008 /* DebugLogger.swift in Sources */,
 				A10000090000000000000009 /* PreprocessingManager.swift in Sources */,
 				A10000100000000000000010 /* VisualEngine.swift in Sources */,
+				A10000270000000000000027 /* TextureLoader.swift in Sources */,
 				A10000110000000000000011 /* InspirationPanel.swift in Sources */,
 				A10000120000000000000012 /* PreviewPanel.swift in Sources */,
 				A10000130000000000000013 /* ControlsPanel.swift in Sources */,

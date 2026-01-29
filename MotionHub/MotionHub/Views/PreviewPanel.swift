@@ -47,7 +47,7 @@ struct PreviewPanel: View {
             HStack(spacing: 6) {
                 Text("AUDIO")
                     .font(AppFonts.display(size: 10))
-                    .foregroundColor(AppColors.textSecondary)
+                    .foregroundColor(audioAnalyzer.selectedDevice != nil && appState.audioLevels.overall > 0.01 ? AppColors.accent : AppColors.textSecondary)
 
                 audioLevelBar(appState.audioLevels.overall)
             }
@@ -167,6 +167,7 @@ struct MetalPreviewView: NSViewRepresentable {
         private var lastFrameTime: CFAbsoluteTime = CFAbsoluteTimeGetCurrent()
         private var frameCount: Int = 0
         private var fpsUpdateTime: CFAbsoluteTime = CFAbsoluteTimeGetCurrent()
+        private var audioLevelUpdateTime: CFAbsoluteTime = CFAbsoluteTimeGetCurrent()
         private var hasLoggedFirstFrame = false
 
         init(appState: AppState, audioAnalyzer: AudioAnalyzer) {
@@ -196,16 +197,25 @@ struct MetalPreviewView: NSViewRepresentable {
             let deltaTime = Float(currentTime - lastFrameTime)
             lastFrameTime = currentTime
 
-            // Update FPS counter (only once per second)
+            // Update FPS counter (once per second)
             frameCount += 1
             if currentTime - fpsUpdateTime >= 1.0 {
                 let fps = frameCount
                 frameCount = 0
                 fpsUpdateTime = currentTime
 
-                // Update FPS on main thread
                 DispatchQueue.main.async { [weak self] in
                     self?.appState.currentFPS = fps
+                }
+            }
+
+            // Update audio levels for UI (10 times per second to avoid UI thrashing)
+            if currentTime - audioLevelUpdateTime >= 0.1 {
+                let audioLevels = audioAnalyzer.levels
+                audioLevelUpdateTime = currentTime
+
+                DispatchQueue.main.async { [weak self] in
+                    self?.appState.audioLevels = audioLevels
                 }
             }
 

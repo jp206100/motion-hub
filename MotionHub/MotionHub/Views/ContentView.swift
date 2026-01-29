@@ -14,49 +14,16 @@ struct ContentView: View {
     @EnvironmentObject var packManager: PackManager
 
     var body: some View {
-        ZStack {
-            // Main three-panel layout
-            HStack(spacing: 0) {
-                // Left: Inspiration Panel (280px)
-                InspirationPanel()
-                    .frame(width: 280)
-                    .background(AppColors.bgDark)
-
-                Divider()
-                    .background(AppColors.border)
-
-                // Center: Preview Panel (flexible)
-                PreviewPanel()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(AppColors.bgDarkest)
-
-                Divider()
-                    .background(AppColors.border)
-
-                // Right: Controls Panel (360px)
-                ControlsPanel()
-                    .frame(width: 360)
-                    .background(AppColors.bgDark)
+        // Simplified layout - just PreviewPanel to test
+        PreviewPanel()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(AppColors.bgDarkest)
+            .onReceive(audioAnalyzer.$levels) { levels in
+                appState.audioLevels = levels
             }
-
-            // Modals
-            if appState.showSavePackModal {
-                SavePackModal()
+            .onAppear {
+                audioAnalyzer.refreshDevices()
             }
-
-            if appState.showLoadPackModal {
-                LoadPackModal()
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(AppColors.bgDarkest)
-        .onReceive(audioAnalyzer.$levels) { levels in
-            // Sync audio levels to appState for visual engine
-            appState.audioLevels = levels
-        }
-        .onAppear {
-            audioAnalyzer.refreshDevices()
-        }
     }
 }
 

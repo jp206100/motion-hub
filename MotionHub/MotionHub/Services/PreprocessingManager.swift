@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-class PreprocessingManager: ObservableObject {
+class PreprocessingManager: ObservableObject, @unchecked Sendable {
     // MARK: - Published Properties
     @Published var isProcessing: Bool = false
     @Published var progress: Double = 0.0

@@ -54,7 +54,15 @@ struct MotionHubApp: App {
                 Divider()
 
                 Button(appState.isFullScreen ? "Exit Full Screen" : "Enter Full Screen") {
-                    appState.isFullScreen.toggle()
+                    if appState.isFullScreen {
+                        FullScreenWindowController.shared.closeFullScreen()
+                        appState.isFullScreen = false
+                    } else {
+                        FullScreenWindowController.shared.openFullScreen(
+                            appState: appState,
+                            audioAnalyzer: audioAnalyzer
+                        )
+                    }
                 }
                 .keyboardShortcut("f", modifiers: [.control, .command])
             }

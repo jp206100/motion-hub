@@ -56,7 +56,10 @@ struct PreviewPanel: View {
 
             // Full Screen button
             Button(action: {
-                appState.isFullScreen = true
+                FullScreenWindowController.shared.openFullScreen(
+                    appState: appState,
+                    audioAnalyzer: audioAnalyzer
+                )
             }) {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.up.left.and.arrow.down.right")

@@ -53,16 +53,6 @@ struct ContentView: View {
         .onAppear {
             audioAnalyzer.refreshDevices()
         }
-        .onChange(of: appState.isFullScreen) { _, isFullScreen in
-            if isFullScreen {
-                FullScreenWindowController.shared.openFullScreen(
-                    appState: appState,
-                    audioAnalyzer: audioAnalyzer
-                )
-            } else {
-                FullScreenWindowController.shared.closeFullScreen()
-            }
-        }
     }
 }
 

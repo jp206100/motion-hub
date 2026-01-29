@@ -34,6 +34,7 @@ class AppState: ObservableObject {
     @Published var cpuUsage: Double = 0
     @Published var gpuUsage: Double = 0
     @Published var isPerformanceMode: Bool = false
+    @Published var isFullScreen: Bool = false
 
     // MARK: - Audio Analysis
     @Published var audioLevels: AudioLevels = .zero

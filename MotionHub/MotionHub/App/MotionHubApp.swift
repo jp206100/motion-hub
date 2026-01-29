@@ -50,6 +50,13 @@ struct MotionHubApp: App {
                     appState.isPerformanceMode.toggle()
                 }
                 .keyboardShortcut(.space, modifiers: .command)
+
+                Divider()
+
+                Button(appState.isFullScreen ? "Exit Full Screen" : "Enter Full Screen") {
+                    appState.isFullScreen.toggle()
+                }
+                .keyboardShortcut("f", modifiers: [.control, .command])
             }
         }
     }

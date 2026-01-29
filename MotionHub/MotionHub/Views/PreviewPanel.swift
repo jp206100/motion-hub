@@ -54,6 +54,29 @@ struct PreviewPanel: View {
 
             Spacer()
 
+            // Full Screen button
+            Button(action: {
+                appState.isFullScreen = true
+            }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    Text("Full Screen")
+                        .font(AppFonts.displayBold(size: 11))
+                        .textCase(.uppercase)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(AppColors.bgLight)
+                .foregroundColor(AppColors.textPrimary)
+                .cornerRadius(4)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(AppColors.border, lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+            .help("Enter full screen mode (⌃⌘F)")
+
             // Performance mode button
             Button(action: {
                 appState.isPerformanceMode = true

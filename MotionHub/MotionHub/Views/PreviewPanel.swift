@@ -132,6 +132,7 @@ struct MetalPreviewView: NSViewRepresentable {
                 print("🎨 VisualEngine created successfully - enabling continuous rendering")
                 mtkView.isPaused = false
                 mtkView.enableSetNeedsDisplay = false
+                print("🎨 MTKView state - isPaused: \(mtkView.isPaused), delegate: \(mtkView.delegate != nil), device: \(mtkView.device != nil)")
             } else {
                 print("🎨 ERROR: VisualEngine creation failed!")
             }
@@ -140,6 +141,7 @@ struct MetalPreviewView: NSViewRepresentable {
         }
 
         print("🎨 MetalPreviewView makeNSView complete")
+        print("🎨 MTKView frame: \(mtkView.frame), bounds: \(mtkView.bounds)")
         return mtkView
     }
 
@@ -212,9 +214,11 @@ struct MetalPreviewView: NSViewRepresentable {
                 return
             }
 
+            // Read audio levels directly from audioAnalyzer (not appState)
+            // to avoid excessive SwiftUI view updates
             engine.update(
                 deltaTime: deltaTime,
-                audioLevels: appState.audioLevels,
+                audioLevels: audioAnalyzer.levels,
                 appState: appState
             )
             engine.render(in: view)

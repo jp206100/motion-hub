@@ -17,7 +17,6 @@ struct MotionHubApp: App {
     @StateObject private var preprocessingManager = PreprocessingManager()
 
     init() {
-        // Set up app directories
         PackManager.setupApplicationDirectories()
     }
 
@@ -32,7 +31,6 @@ struct MotionHubApp: App {
                 .preferredColorScheme(.dark)
         }
         .windowStyle(.hiddenTitleBar)
-        .windowResizability(.contentSize)
         .defaultSize(width: 1400, height: 900)
         .commands {
             CommandGroup(replacing: .newItem) {}

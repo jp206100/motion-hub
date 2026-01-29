@@ -10,7 +10,6 @@ import SwiftUI
 
 @main
 struct MotionHubApp: App {
-    // All StateObjects enabled - testing with simple view (no Metal)
     @StateObject private var appState = AppState()
     @StateObject private var audioAnalyzer = AudioAnalyzer()
     @StateObject private var midiHandler = MIDIHandler()
@@ -18,35 +17,21 @@ struct MotionHubApp: App {
     @StateObject private var preprocessingManager = PreprocessingManager()
 
     init() {
-        print("🚀 MotionHubApp init starting...")
-        // Set up app directories
         PackManager.setupApplicationDirectories()
-        print("🚀 MotionHubApp init complete")
     }
 
     var body: some Scene {
         WindowGroup {
-            // Test with Metal PreviewPanel
-            VStack(spacing: 10) {
-                Text("Testing Metal PreviewPanel")
-                    .font(.headline)
-                    .foregroundColor(.white)
-
-                PreviewPanel()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.black)
-            .environmentObject(appState)
-            .environmentObject(audioAnalyzer)
-            .environmentObject(midiHandler)
-            .environmentObject(packManager)
-            .environmentObject(preprocessingManager)
-            .onAppear {
-                print("🚀 Test view with Metal appeared!")
-            }
+            ContentView()
+                .environmentObject(appState)
+                .environmentObject(audioAnalyzer)
+                .environmentObject(midiHandler)
+                .environmentObject(packManager)
+                .environmentObject(preprocessingManager)
+                .preferredColorScheme(.dark)
         }
-        .defaultSize(width: 1000, height: 700)
+        .windowStyle(.hiddenTitleBar)
+        .defaultSize(width: 1400, height: 900)
         .commands {
             CommandGroup(replacing: .newItem) {}
             CommandMenu("Pack") {

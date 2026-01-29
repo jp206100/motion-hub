@@ -18,9 +18,6 @@ struct ContentView: View {
         PreviewPanel()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(AppColors.bgDarkest)
-            .onReceive(audioAnalyzer.$levels) { levels in
-                appState.audioLevels = levels
-            }
             .onAppear {
                 audioAnalyzer.refreshDevices()
             }

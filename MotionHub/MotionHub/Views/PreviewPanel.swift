@@ -214,9 +214,11 @@ struct MetalPreviewView: NSViewRepresentable {
                 return
             }
 
+            // Read audio levels directly from audioAnalyzer (not appState)
+            // to avoid excessive SwiftUI view updates
             engine.update(
                 deltaTime: deltaTime,
-                audioLevels: appState.audioLevels,
+                audioLevels: audioAnalyzer.levels,
                 appState: appState
             )
             engine.render(in: view)

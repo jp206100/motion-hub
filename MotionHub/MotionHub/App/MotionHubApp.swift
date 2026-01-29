@@ -37,7 +37,7 @@ struct MotionHubApp: App {
                     oscHandler.appState = appState
                 }
         }
-        .windowStyle(.hiddenTitleBar)
+        // .windowStyle(.hiddenTitleBar)  // Disabled - causes window to not appear on some macOS versions
         .defaultSize(width: 1400, height: 900)
         .commands {
             CommandGroup(replacing: .newItem) {}

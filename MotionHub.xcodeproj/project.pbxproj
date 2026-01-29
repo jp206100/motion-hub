@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		A10000010000000000000001 /* MotionHubApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000001 /* MotionHubApp.swift */; };
 		A10000020000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000020000000000000002 /* ContentView.swift */; };
+		A10000260000000000000026 /* FullScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000260000000000000026 /* FullScreenView.swift */; };
 		A10000030000000000000003 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000030000000000000003 /* AppState.swift */; };
 		A10000040000000000000004 /* InspirationPack.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000040000000000000004 /* InspirationPack.swift */; };
 		A10000050000000000000005 /* AudioAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000050000000000000005 /* AudioAnalyzer.swift */; };
@@ -38,6 +39,7 @@
 		A20000000000000000000000 /* MotionHub.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MotionHub.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000010000000000000001 /* MotionHubApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionHubApp.swift; sourceTree = "<group>"; };
 		A20000020000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A20000260000000000000026 /* FullScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullScreenView.swift; sourceTree = "<group>"; };
 		A20000030000000000000003 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		A20000040000000000000004 /* InspirationPack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspirationPack.swift; sourceTree = "<group>"; };
 		A20000050000000000000005 /* AudioAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioAnalyzer.swift; sourceTree = "<group>"; };
@@ -130,6 +132,7 @@
 			isa = PBXGroup;
 			children = (
 				A20000020000000000000002 /* ContentView.swift */,
+				A20000260000000000000026 /* FullScreenView.swift */,
 				A20000110000000000000011 /* InspirationPanel.swift */,
 				A20000120000000000000012 /* PreviewPanel.swift */,
 				A20000130000000000000013 /* ControlsPanel.swift */,
@@ -271,6 +274,7 @@
 			files = (
 				A10000010000000000000001 /* MotionHubApp.swift in Sources */,
 				A10000020000000000000002 /* ContentView.swift in Sources */,
+				A10000260000000000000026 /* FullScreenView.swift in Sources */,
 				A10000030000000000000003 /* AppState.swift in Sources */,
 				A10000040000000000000004 /* InspirationPack.swift in Sources */,
 				A10000050000000000000005 /* AudioAnalyzer.swift in Sources */,

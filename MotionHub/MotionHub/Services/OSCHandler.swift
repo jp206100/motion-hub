@@ -102,6 +102,10 @@ class OSCHandler: ObservableObject {
         var yes: Int32 = 1
         setsockopt(socketFD, SOL_SOCKET, SO_REUSEADDR, &yes, socklen_t(MemoryLayout<Int32>.size))
 
+        // Set receive timeout to allow clean shutdown
+        var timeout = timeval(tv_sec: 1, tv_usec: 0)
+        setsockopt(socketFD, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+
         // Bind to port
         var addr = sockaddr_in()
         addr.sin_family = sa_family_t(AF_INET)
@@ -171,13 +175,16 @@ class OSCHandler: ObservableObject {
 
             if bytesRead > 0 {
                 let data = Data(bytes: buffer, count: bytesRead)
-                print("🎛️ OSC: Received \(bytesRead) bytes")
                 parseOSCMessage(data)
-            } else if bytesRead < 0 && errno != EAGAIN && errno != EWOULDBLOCK {
-                if !shouldStop {
-                    print("❌ OSC: Receive error \(errno)")
+            } else if bytesRead < 0 {
+                // Timeout (EAGAIN/EWOULDBLOCK) is expected - just continue
+                if errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR {
+                    if !shouldStop {
+                        print("❌ OSC: Receive error \(errno)")
+                    }
+                    break
                 }
-                break
+                // Timeout reached, just loop and check shouldStop
             }
         }
     }

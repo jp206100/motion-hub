@@ -144,19 +144,29 @@ class OSCHandler: ObservableObject {
     // MARK: - Connection Handling
 
     private func handleConnection(_ connection: NWConnection) {
-        connection.start(queue: queue)
+        print("🎛️ OSC: New connection from \(connection.endpoint)")
 
-        receiveMessage(on: connection)
+        connection.stateUpdateHandler = { [weak self] state in
+            print("🎛️ OSC connection state: \(state)")
+            if case .ready = state {
+                self?.receiveMessage(on: connection)
+            }
+        }
+
+        connection.start(queue: queue)
     }
 
     private func receiveMessage(on connection: NWConnection) {
-        connection.receiveMessage { [weak self] data, _, isComplete, error in
+        connection.receiveMessage { [weak self] data, context, isComplete, error in
+            print("🎛️ OSC: receiveMessage callback - data: \(data?.count ?? 0) bytes, error: \(String(describing: error))")
+
             if let data = data, !data.isEmpty {
+                print("🎛️ OSC: Received \(data.count) bytes: \(data.map { String(format: "%02x", $0) }.joined(separator: " "))")
                 self?.parseOSCMessage(data)
             }
 
             if let error = error {
-                print("OSC receive error: \(error)")
+                print("🎛️ OSC receive error: \(error)")
                 return
             }
 
@@ -168,16 +178,28 @@ class OSCHandler: ObservableObject {
     // MARK: - OSC Parsing
 
     private func parseOSCMessage(_ data: Data) {
-        guard data.count >= 4 else { return }
+        print("🎛️ OSC: Parsing message of \(data.count) bytes")
+        guard data.count >= 4 else {
+            print("🎛️ OSC: Message too short")
+            return
+        }
 
         var offset = 0
 
         // Parse address pattern (null-terminated, padded to 4 bytes)
-        guard let address = readOSCString(from: data, offset: &offset) else { return }
+        guard let address = readOSCString(from: data, offset: &offset) else {
+            print("🎛️ OSC: Failed to parse address")
+            return
+        }
+        print("🎛️ OSC: Address = '\(address)'")
 
         // Parse type tag string (starts with ',')
         guard let typeTag = readOSCString(from: data, offset: &offset),
-              typeTag.hasPrefix(",") else { return }
+              typeTag.hasPrefix(",") else {
+            print("🎛️ OSC: Failed to parse type tag (got: \(readOSCString(from: data, offset: &offset) ?? "nil"))")
+            return
+        }
+        print("🎛️ OSC: Type tag = '\(typeTag)'")
 
         // Parse arguments based on type tags
         var arguments: [Any] = []
@@ -188,25 +210,32 @@ class OSCHandler: ObservableObject {
             case "f": // Float32
                 if let value = readOSCFloat(from: data, offset: &offset) {
                     arguments.append(value)
+                    print("🎛️ OSC: Float arg = \(value)")
                 }
             case "i": // Int32
                 if let value = readOSCInt(from: data, offset: &offset) {
                     arguments.append(value)
+                    print("🎛️ OSC: Int arg = \(value)")
                 }
             case "s": // String
                 if let value = readOSCString(from: data, offset: &offset) {
                     arguments.append(value)
+                    print("🎛️ OSC: String arg = \(value)")
                 }
             case "T": // True
                 arguments.append(true)
+                print("🎛️ OSC: Bool arg = true")
             case "F": // False
                 arguments.append(false)
+                print("🎛️ OSC: Bool arg = false")
             default:
+                print("🎛️ OSC: Unknown type tag '\(type)'")
                 break
             }
         }
 
         // Handle the message
+        print("🎛️ OSC: Handling message with \(arguments.count) arguments")
         handleOSCMessage(address: address, arguments: arguments)
     }
 
@@ -258,13 +287,24 @@ class OSCHandler: ObservableObject {
     // MARK: - Message Handling
 
     private func handleOSCMessage(address: String, arguments: [Any]) {
+        print("🎛️ OSC: handleOSCMessage called with address '\(address)'")
+
         guard let oscAddress = OSCAddress.fromString(address) else {
-            // Unknown address - could log for debugging
+            print("🎛️ OSC: Unknown address '\(address)' - ignoring")
             return
         }
+        print("🎛️ OSC: Mapped to \(oscAddress)")
 
         DispatchQueue.main.async { [weak self] in
-            guard let self = self, let appState = self.appState else { return }
+            guard let self = self else {
+                print("🎛️ OSC: self is nil")
+                return
+            }
+            guard let appState = self.appState else {
+                print("🎛️ OSC: appState is nil!")
+                return
+            }
+            print("🎛️ OSC: Updating appState for \(oscAddress)")
 
             self.lastMessageTime = Date()
             self.messageCount += 1

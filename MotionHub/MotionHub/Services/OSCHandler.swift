@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Network
 import Combine
 
 class OSCHandler: ObservableObject {
@@ -35,8 +34,9 @@ class OSCHandler: ObservableObject {
     weak var appState: AppState?
 
     // MARK: - Network
-    private var listener: NWListener?
-    private let queue = DispatchQueue(label: "com.motionhub.osc", qos: .userInteractive)
+    private var socketFD: Int32 = -1
+    private var receiveThread: Thread?
+    private var shouldStop = false
 
     // MARK: - OSC Address Mappings
     enum OSCAddress: String, CaseIterable {
@@ -86,52 +86,72 @@ class OSCHandler: ObservableObject {
     // MARK: - Server Management
 
     func startServer() {
-        guard listener == nil else { return }
+        guard socketFD == -1 else { return }
 
-        do {
-            let parameters = NWParameters.udp
-            parameters.allowLocalEndpointReuse = true
-
-            listener = try NWListener(using: parameters, on: NWEndpoint.Port(rawValue: port)!)
-
-            listener?.stateUpdateHandler = { [weak self] state in
-                DispatchQueue.main.async {
-                    switch state {
-                    case .ready:
-                        self?.isConnected = true
-                        print("🎛️ OSC server listening on port \(self?.port ?? 9000)")
-                    case .failed(let error):
-                        self?.isConnected = false
-                        print("❌ OSC server failed: \(error)")
-                    case .cancelled:
-                        self?.isConnected = false
-                        print("🛑 OSC server stopped")
-                    default:
-                        break
-                    }
-                }
-            }
-
-            listener?.newConnectionHandler = { [weak self] connection in
-                self?.handleConnection(connection)
-            }
-
-            listener?.start(queue: queue)
-
-        } catch {
-            print("❌ Failed to create OSC listener: \(error)")
+        // Create UDP socket
+        socketFD = socket(AF_INET, SOCK_DGRAM, 0)
+        guard socketFD >= 0 else {
+            print("❌ OSC: Failed to create socket")
             DispatchQueue.main.async {
                 self.isConnected = false
             }
+            return
         }
+
+        // Allow address reuse
+        var yes: Int32 = 1
+        setsockopt(socketFD, SOL_SOCKET, SO_REUSEADDR, &yes, socklen_t(MemoryLayout<Int32>.size))
+
+        // Bind to port
+        var addr = sockaddr_in()
+        addr.sin_family = sa_family_t(AF_INET)
+        addr.sin_port = port.bigEndian
+        addr.sin_addr.s_addr = INADDR_ANY.bigEndian
+
+        let bindResult = withUnsafePointer(to: &addr) { ptr in
+            ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockaddrPtr in
+                bind(socketFD, sockaddrPtr, socklen_t(MemoryLayout<sockaddr_in>.size))
+            }
+        }
+
+        if bindResult < 0 {
+            print("❌ OSC: Failed to bind to port \(port) - error \(errno)")
+            close(socketFD)
+            socketFD = -1
+            DispatchQueue.main.async {
+                self.isConnected = false
+            }
+            return
+        }
+
+        print("🎛️ OSC server listening on port \(port)")
+        DispatchQueue.main.async {
+            self.isConnected = true
+        }
+
+        // Start receive thread
+        shouldStop = false
+        receiveThread = Thread { [weak self] in
+            self?.receiveLoop()
+        }
+        receiveThread?.name = "OSC Receive Thread"
+        receiveThread?.start()
     }
 
     func stopServer() {
-        listener?.cancel()
-        listener = nil
+        shouldStop = true
+
+        if socketFD >= 0 {
+            close(socketFD)
+            socketFD = -1
+        }
+
+        receiveThread = nil
+
         DispatchQueue.main.async {
             self.isConnected = false
         }
+        print("🛑 OSC server stopped")
     }
 
     private func restartServer() {
@@ -141,37 +161,24 @@ class OSCHandler: ObservableObject {
         }
     }
 
-    // MARK: - Connection Handling
+    // MARK: - Receive Loop
 
-    private func handleConnection(_ connection: NWConnection) {
-        print("🎛️ OSC: New connection from \(connection.endpoint)")
+    private func receiveLoop() {
+        var buffer = [UInt8](repeating: 0, count: 2048)
 
-        connection.stateUpdateHandler = { [weak self] state in
-            print("🎛️ OSC connection state: \(state)")
-            if case .ready = state {
-                self?.receiveMessage(on: connection)
+        while !shouldStop && socketFD >= 0 {
+            let bytesRead = recv(socketFD, &buffer, buffer.count, 0)
+
+            if bytesRead > 0 {
+                let data = Data(bytes: buffer, count: bytesRead)
+                print("🎛️ OSC: Received \(bytesRead) bytes")
+                parseOSCMessage(data)
+            } else if bytesRead < 0 && errno != EAGAIN && errno != EWOULDBLOCK {
+                if !shouldStop {
+                    print("❌ OSC: Receive error \(errno)")
+                }
+                break
             }
-        }
-
-        connection.start(queue: queue)
-    }
-
-    private func receiveMessage(on connection: NWConnection) {
-        connection.receiveMessage { [weak self] data, context, isComplete, error in
-            print("🎛️ OSC: receiveMessage callback - data: \(data?.count ?? 0) bytes, error: \(String(describing: error))")
-
-            if let data = data, !data.isEmpty {
-                print("🎛️ OSC: Received \(data.count) bytes: \(data.map { String(format: "%02x", $0) }.joined(separator: " "))")
-                self?.parseOSCMessage(data)
-            }
-
-            if let error = error {
-                print("🎛️ OSC receive error: \(error)")
-                return
-            }
-
-            // Continue receiving
-            self?.receiveMessage(on: connection)
         }
     }
 
@@ -196,7 +203,7 @@ class OSCHandler: ObservableObject {
         // Parse type tag string (starts with ',')
         guard let typeTag = readOSCString(from: data, offset: &offset),
               typeTag.hasPrefix(",") else {
-            print("🎛️ OSC: Failed to parse type tag (got: \(readOSCString(from: data, offset: &offset) ?? "nil"))")
+            print("🎛️ OSC: Failed to parse type tag")
             return
         }
         print("🎛️ OSC: Type tag = '\(typeTag)'")
@@ -313,11 +320,13 @@ class OSCHandler: ObservableObject {
             case .intensity:
                 if let value = self.extractFloat(from: arguments) {
                     appState.intensity = Double(clamp(value, min: 0, max: 1))
+                    print("🎛️ OSC: Set intensity to \(appState.intensity)")
                 }
 
             case .glitchAmount:
                 if let value = self.extractFloat(from: arguments) {
                     appState.glitchAmount = Double(clamp(value, min: 0, max: 1))
+                    print("🎛️ OSC: Set glitchAmount to \(appState.glitchAmount)")
                 }
 
             case .speed:
@@ -328,13 +337,16 @@ class OSCHandler: ObservableObject {
                     } else {
                         appState.speed = Int(clamp(value, min: 1, max: 4))
                     }
+                    print("🎛️ OSC: Set speed to \(appState.speed)")
                 } else if let value = self.extractInt(from: arguments) {
                     appState.speed = Int(clamp(Float(value), min: 1, max: 4))
+                    print("🎛️ OSC: Set speed to \(appState.speed)")
                 }
 
             case .colorShift:
                 if let value = self.extractFloat(from: arguments) {
                     appState.colorShift = Double(clamp(value, min: 0, max: 1))
+                    print("🎛️ OSC: Set colorShift to \(appState.colorShift)")
                 }
 
             case .freqMin:
@@ -345,6 +357,7 @@ class OSCHandler: ObservableObject {
                     } else {
                         appState.freqMin = Double(clamp(value, min: 20, max: 20000))
                     }
+                    print("🎛️ OSC: Set freqMin to \(appState.freqMin)")
                 }
 
             case .freqMax:
@@ -355,6 +368,7 @@ class OSCHandler: ObservableObject {
                     } else {
                         appState.freqMax = Double(clamp(value, min: 20, max: 20000))
                     }
+                    print("🎛️ OSC: Set freqMax to \(appState.freqMax)")
                 }
 
             case .monochrome:
@@ -365,9 +379,11 @@ class OSCHandler: ObservableObject {
                 } else if let value = self.extractInt(from: arguments) {
                     appState.isMonochrome = value > 0
                 }
+                print("🎛️ OSC: Set isMonochrome to \(appState.isMonochrome)")
 
             case .reset:
                 appState.reset()
+                print("🎛️ OSC: Reset triggered")
             }
         }
     }

@@ -364,7 +364,16 @@ class OSCHandler: ObservableObject {
 
             case .glitchAmount:
                 if let value = self.extractFloat(from: arguments) {
-                    appState.glitchAmount = Double(clamp(value, min: 0, max: 1))
+                    // Normalize: accept 0-1 or 0-100 range
+                    let normalized: Float
+                    if value > 1.0 && value <= 100.0 {
+                        normalized = value / 100.0
+                    } else if value > 100.0 {
+                        normalized = 1.0
+                    } else {
+                        normalized = value
+                    }
+                    appState.glitchAmount = Double(clamp(normalized, min: 0, max: 1))
                     print("🎛️ OSC: Set glitchAmount to \(appState.glitchAmount)")
                 }
 
@@ -384,7 +393,16 @@ class OSCHandler: ObservableObject {
 
             case .colorShift:
                 if let value = self.extractFloat(from: arguments) {
-                    appState.colorShift = Double(clamp(value, min: 0, max: 1))
+                    // Normalize: accept 0-1 or 0-100 range
+                    let normalized: Float
+                    if value > 1.0 && value <= 100.0 {
+                        normalized = value / 100.0
+                    } else if value > 100.0 {
+                        normalized = 1.0
+                    } else {
+                        normalized = value
+                    }
+                    appState.colorShift = Double(clamp(normalized, min: 0, max: 1))
                     print("🎛️ OSC: Set colorShift to \(appState.colorShift)")
                 }
 

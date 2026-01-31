@@ -350,11 +350,11 @@ class OSCHandler: ObservableObject {
             switch oscAddress {
             case .intensity:
                 if let value = self.extractFloat(from: arguments) {
-                    // Normalize: accept 0-1, 0-100, or 0-127 range
+                    // Normalize: accept 0-1 or 0-100 range
                     let normalized: Float
-                    if value > 1.0 && value <= 127.0 {
-                        normalized = value / 127.0
-                    } else if value > 127.0 {
+                    if value > 1.0 && value <= 100.0 {
+                        normalized = value / 100.0
+                    } else if value > 100.0 {
                         normalized = 1.0
                     } else {
                         normalized = value

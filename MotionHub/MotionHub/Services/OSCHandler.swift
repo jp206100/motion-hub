@@ -191,10 +191,29 @@ class OSCHandler: ObservableObject {
 
     // MARK: - OSC Parsing
 
+    /// Parse text-based OSC message (e.g., "/motionhub/intensity 0.5")
+    /// This handles messages from Max/MSP which sends address and value as a single string
+    private func parseTextMessage(_ message: String) {
+        let components = message.split(separator: " ", maxSplits: 1)
+        guard components.count >= 1 else { return }
+
+        let address = String(components[0])
+        var arguments: [Any] = []
+
+        if components.count >= 2 {
+            let valueString = String(components[1])
+            if let floatValue = Float(valueString) {
+                arguments.append(floatValue)
+            } else if let intValue = Int32(valueString) {
+                arguments.append(intValue)
+            }
+        }
+
+        handleOSCMessage(address: address, arguments: arguments)
+    }
+
     private func parseOSCMessage(_ data: Data) {
-        print("🎛️ OSC: Parsing message of \(data.count) bytes")
         guard data.count >= 4 else {
-            print("🎛️ OSC: Message too short")
             return
         }
 
@@ -202,10 +221,15 @@ class OSCHandler: ObservableObject {
 
         // Parse address pattern (null-terminated, padded to 4 bytes)
         guard let address = readOSCString(from: data, offset: &offset) else {
-            print("🎛️ OSC: Failed to parse address")
             return
         }
-        print("🎛️ OSC: Address = '\(address)'")
+
+        // Check if this is a text-based message (address contains space + value)
+        // Max/MSP sends "/motionhub/intensity 0.5" as a single string
+        if address.contains(" ") {
+            parseTextMessage(address)
+            return
+        }
 
         // Parse type tag string (starts with ',')
         guard let typeTag = readOSCString(from: data, offset: &offset),
@@ -326,8 +350,16 @@ class OSCHandler: ObservableObject {
             switch oscAddress {
             case .intensity:
                 if let value = self.extractFloat(from: arguments) {
-                    appState.intensity = Double(clamp(value, min: 0, max: 1))
-                    print("🎛️ OSC: Set intensity to \(appState.intensity)")
+                    // Normalize: accept 0-1, 0-100, or 0-127 range
+                    let normalized: Float
+                    if value > 1.0 && value <= 127.0 {
+                        normalized = value / 127.0
+                    } else if value > 127.0 {
+                        normalized = 1.0
+                    } else {
+                        normalized = value
+                    }
+                    appState.intensity = Double(clamp(normalized, min: 0, max: 1))
                 }
 
             case .glitchAmount:

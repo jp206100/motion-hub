@@ -363,7 +363,17 @@ class OSCHandler: ObservableObject {
                 }
 
             case .glitchAmount:
-                if let value = self.extractFloat(from: arguments) {
+                // Handle both float and integer input from OSC
+                var rawValue: Float?
+                if let intVal = arguments.first as? Int32 {
+                    rawValue = Float(intVal)
+                } else if let intVal = arguments.first as? Int {
+                    rawValue = Float(intVal)
+                } else {
+                    rawValue = self.extractFloat(from: arguments)
+                }
+
+                if let value = rawValue {
                     // Normalize: accept 0-1 or 0-100 range
                     let normalized: Float
                     if value > 1.0 && value <= 100.0 {
@@ -374,7 +384,7 @@ class OSCHandler: ObservableObject {
                         normalized = value
                     }
                     appState.glitchAmount = Double(clamp(normalized, min: 0, max: 1))
-                    print("🎛️ OSC: Set glitchAmount to \(appState.glitchAmount)")
+                    print("🎛️ OSC: Set glitchAmount to \(appState.glitchAmount) (raw: \(value))")
                 }
 
             case .speed:
@@ -392,7 +402,17 @@ class OSCHandler: ObservableObject {
                 }
 
             case .colorShift:
-                if let value = self.extractFloat(from: arguments) {
+                // Handle both float and integer input from OSC
+                var rawValue: Float?
+                if let intVal = arguments.first as? Int32 {
+                    rawValue = Float(intVal)
+                } else if let intVal = arguments.first as? Int {
+                    rawValue = Float(intVal)
+                } else {
+                    rawValue = self.extractFloat(from: arguments)
+                }
+
+                if let value = rawValue {
                     // Normalize: accept 0-1 or 0-100 range
                     let normalized: Float
                     if value > 1.0 && value <= 100.0 {
@@ -403,7 +423,7 @@ class OSCHandler: ObservableObject {
                         normalized = value
                     }
                     appState.colorShift = Double(clamp(normalized, min: 0, max: 1))
-                    print("🎛️ OSC: Set colorShift to \(appState.colorShift)")
+                    print("🎛️ OSC: Set colorShift to \(appState.colorShift) (raw: \(value))")
                 }
 
             case .freqMin:

@@ -4,6 +4,8 @@
 //
 //  OSC (Open Sound Control) server for external control via Max for Live
 //
+//  BUILD MARKER: 2026-02-01-v2 - Debug integer handling for glitch/colorshift
+//
 
 import Foundation
 import Combine

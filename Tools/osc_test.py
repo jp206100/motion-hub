@@ -43,6 +43,21 @@ def main():
     print("Make sure MotionHub is running with OSC enabled!")
     print()
 
+    # Check for quick test mode
+    if len(sys.argv) > 1 and sys.argv[1] == 'test100':
+        print("Testing 0-100 range values...")
+        print("-" * 30)
+        # Test with values in the 0-100 range (like Max for Live dials)
+        send_osc("/motionhub/intensity", 50.0)
+        time.sleep(0.3)
+        send_osc("/motionhub/glitch", 50.0)
+        time.sleep(0.3)
+        send_osc("/motionhub/colorshift", 50.0)
+        time.sleep(0.3)
+        print("-" * 30)
+        print("All parameters should now show 50 in MotionHub")
+        return
+
     # Test each parameter
     tests = [
         ("/motionhub/intensity", 0.8),

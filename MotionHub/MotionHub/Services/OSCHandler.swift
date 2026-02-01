@@ -365,12 +365,24 @@ class OSCHandler: ObservableObject {
             case .glitchAmount:
                 // Handle both float and integer input from OSC
                 var rawValue: Float?
-                if let intVal = arguments.first as? Int32 {
+                let firstArg = arguments.first
+                print("🎛️ OSC: glitchAmount arg type: \(type(of: firstArg)), value: \(String(describing: firstArg))")
+
+                if let intVal = firstArg as? Int32 {
                     rawValue = Float(intVal)
-                } else if let intVal = arguments.first as? Int {
+                    print("🎛️ OSC: Converted Int32 \(intVal) to Float \(rawValue!)")
+                } else if let intVal = firstArg as? Int {
                     rawValue = Float(intVal)
+                    print("🎛️ OSC: Converted Int \(intVal) to Float \(rawValue!)")
+                } else if let floatVal = firstArg as? Float {
+                    rawValue = floatVal
+                    print("🎛️ OSC: Got Float \(floatVal)")
+                } else if let doubleVal = firstArg as? Double {
+                    rawValue = Float(doubleVal)
+                    print("🎛️ OSC: Converted Double \(doubleVal) to Float \(rawValue!)")
                 } else {
                     rawValue = self.extractFloat(from: arguments)
+                    print("🎛️ OSC: extractFloat returned \(String(describing: rawValue))")
                 }
 
                 if let value = rawValue {
@@ -384,7 +396,7 @@ class OSCHandler: ObservableObject {
                         normalized = value
                     }
                     appState.glitchAmount = Double(clamp(normalized, min: 0, max: 1))
-                    print("🎛️ OSC: Set glitchAmount to \(appState.glitchAmount) (raw: \(value))")
+                    print("🎛️ OSC: Set glitchAmount to \(appState.glitchAmount) (raw: \(value), normalized: \(normalized))")
                 }
 
             case .speed:

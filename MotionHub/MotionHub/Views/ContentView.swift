@@ -11,6 +11,7 @@ struct ContentView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var audioAnalyzer: AudioAnalyzer
     @EnvironmentObject var midiHandler: MIDIHandler
+    @EnvironmentObject var oscHandler: OSCHandler
     @EnvironmentObject var packManager: PackManager
 
     var body: some View {
@@ -62,6 +63,7 @@ struct ContentView_Previews: PreviewProvider {
             .environmentObject(AppState())
             .environmentObject(AudioAnalyzer())
             .environmentObject(MIDIHandler())
+            .environmentObject(OSCHandler())
             .environmentObject(PackManager())
             .environmentObject(PreprocessingManager())
             .preferredColorScheme(.dark)

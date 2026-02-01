@@ -10,6 +10,7 @@ import SwiftUI
 struct ControlsPanel: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var audioAnalyzer: AudioAnalyzer
+    @EnvironmentObject var oscHandler: OSCHandler
 
     var body: some View {
         ScrollView {
@@ -40,6 +41,12 @@ struct ControlsPanel: View {
 
                 // Settings section
                 settingsSection
+
+                Divider()
+                    .background(AppColors.border)
+
+                // External Control section (OSC)
+                externalControlSection
 
                 Spacer()
             }
@@ -291,6 +298,89 @@ struct ControlsPanel: View {
                 )
                 .accentColor(AppColors.accent)
             }
+        }
+    }
+
+    private var externalControlSection: some View {
+        VStack(spacing: 12) {
+            Text("External Control")
+                .font(AppFonts.displayBold(size: 12))
+                .foregroundColor(AppColors.textSecondary)
+                .textCase(.uppercase)
+                .tracking(0.5)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            // OSC Server
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("OSC Server")
+                        .font(AppFonts.mono(size: 11))
+                        .foregroundColor(AppColors.textPrimary)
+
+                    Spacer()
+
+                    // Status indicator
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(oscHandler.isConnected ? Color.green : Color.red)
+                            .frame(width: 6, height: 6)
+                        Text(oscHandler.isConnected ? "Active" : "Inactive")
+                            .font(AppFonts.mono(size: 9))
+                            .foregroundColor(AppColors.textDim)
+                    }
+                }
+
+                // Enable/Disable toggle
+                Toggle(isOn: $oscHandler.isEnabled) {
+                    Text("Enable OSC")
+                        .font(AppFonts.mono(size: 10))
+                        .foregroundColor(AppColors.textSecondary)
+                }
+                .toggleStyle(.switch)
+                .controlSize(.small)
+
+                // Port configuration
+                HStack {
+                    Text("Port:")
+                        .font(AppFonts.mono(size: 10))
+                        .foregroundColor(AppColors.textSecondary)
+
+                    TextField("Port", value: $oscHandler.port, format: .number)
+                        .font(AppFonts.mono(size: 11))
+                        .textFieldStyle(.plain)
+                        .frame(width: 60)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(AppColors.bgLight)
+                        .cornerRadius(4)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(AppColors.border, lineWidth: 1)
+                        )
+
+                    Spacer()
+
+                    // Message counter
+                    if oscHandler.messageCount > 0 {
+                        Text("\(oscHandler.messageCount) msgs")
+                            .font(AppFonts.mono(size: 9))
+                            .foregroundColor(AppColors.textDim)
+                    }
+                }
+
+                // Help text
+                Text("Use Max for Live to send OSC from Ableton")
+                    .font(AppFonts.mono(size: 9))
+                    .foregroundColor(AppColors.textDim)
+                    .padding(.top, 2)
+            }
+            .padding(12)
+            .background(AppColors.bgLight.opacity(0.5))
+            .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(AppColors.border, lineWidth: 1)
+            )
         }
     }
 

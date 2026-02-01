@@ -32,6 +32,8 @@
 		A10000230000000000000023 /* Glitch.metal in Sources */ = {isa = PBXBuildFile; fileRef = A20000230000000000000023 /* Glitch.metal */; };
 		A10000240000000000000024 /* PostProcess.metal in Sources */ = {isa = PBXBuildFile; fileRef = A20000240000000000000024 /* PostProcess.metal */; };
 		A10000250000000000000025 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000250000000000000025 /* Assets.xcassets */; };
+		A10000260000000000000026 /* TextureLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000260000000000000026 /* TextureLoader.swift */; };
+		A10000270000000000000027 /* OSCHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000270000000000000027 /* OSCHandler.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -64,6 +66,8 @@
 		A20000290000000000000029 /* ShaderTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderTypes.h; sourceTree = "<group>"; };
 		A20000300000000000000030 /* MotionHub.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MotionHub.entitlements; sourceTree = "<group>"; };
 		A20000310000000000000031 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A20000260000000000000026 /* TextureLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextureLoader.swift; sourceTree = "<group>"; };
+		A20000270000000000000027 /* OSCHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSCHandler.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -147,6 +151,7 @@
 				A20000070000000000000007 /* MIDIHandler.swift */,
 				A20000080000000000000008 /* DebugLogger.swift */,
 				A20000090000000000000009 /* PreprocessingManager.swift */,
+				A20000270000000000000027 /* OSCHandler.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -155,6 +160,7 @@
 			isa = PBXGroup;
 			children = (
 				A20000100000000000000010 /* VisualEngine.swift */,
+				A20000260000000000000026 /* TextureLoader.swift */,
 				A20000290000000000000029 /* ShaderTypes.h */,
 				A40000110000000000000011 /* Shaders */,
 			);
@@ -293,6 +299,8 @@
 				A10000220000000000000022 /* Common.metal in Sources */,
 				A10000230000000000000023 /* Glitch.metal in Sources */,
 				A10000240000000000000024 /* PostProcess.metal in Sources */,
+				A10000260000000000000026 /* TextureLoader.swift in Sources */,
+				A10000270000000000000027 /* OSCHandler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

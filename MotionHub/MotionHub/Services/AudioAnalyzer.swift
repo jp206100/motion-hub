@@ -408,7 +408,15 @@ class AudioAnalyzer: ObservableObject {
         var allDeviceNames: [String] = []
 
         for deviceID in deviceIDs {
+            // Skip system aggregate devices that can cause hangs
             if let device = getDeviceInfo(deviceID: deviceID) {
+                // Skip problematic aggregate devices
+                if device.name.contains("CADefaultDeviceAggregate") ||
+                   device.name.contains("Aggregate") && device.name.contains("-") {
+                    print("🎤 Skipping aggregate device: '\(device.name)' (can cause hangs)")
+                    continue
+                }
+
                 allDeviceNames.append(device.name)
                 let hasInput = hasInputChannels(deviceID: deviceID)
                 print("🎤 Device: '\(device.name)' (ID: \(device.id)) - hasInput: \(hasInput)")

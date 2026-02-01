@@ -4,8 +4,6 @@
 //
 //  OSC (Open Sound Control) server for external control via Max for Live
 //
-//  BUILD MARKER: 2026-02-01-v2 - Debug integer handling for glitch/colorshift
-//
 
 import Foundation
 import Combine
@@ -365,26 +363,14 @@ class OSCHandler: ObservableObject {
                 }
 
             case .glitchAmount:
-                // Handle both float and integer input from OSC
+                // Handle both float and integer input from OSC (Max sends integers)
                 var rawValue: Float?
-                let firstArg = arguments.first
-                print("🎛️ OSC: glitchAmount arg type: \(type(of: firstArg)), value: \(String(describing: firstArg))")
-
-                if let intVal = firstArg as? Int32 {
+                if let intVal = arguments.first as? Int32 {
                     rawValue = Float(intVal)
-                    print("🎛️ OSC: Converted Int32 \(intVal) to Float \(rawValue!)")
-                } else if let intVal = firstArg as? Int {
+                } else if let intVal = arguments.first as? Int {
                     rawValue = Float(intVal)
-                    print("🎛️ OSC: Converted Int \(intVal) to Float \(rawValue!)")
-                } else if let floatVal = firstArg as? Float {
-                    rawValue = floatVal
-                    print("🎛️ OSC: Got Float \(floatVal)")
-                } else if let doubleVal = firstArg as? Double {
-                    rawValue = Float(doubleVal)
-                    print("🎛️ OSC: Converted Double \(doubleVal) to Float \(rawValue!)")
                 } else {
                     rawValue = self.extractFloat(from: arguments)
-                    print("🎛️ OSC: extractFloat returned \(String(describing: rawValue))")
                 }
 
                 if let value = rawValue {
@@ -398,7 +384,6 @@ class OSCHandler: ObservableObject {
                         normalized = value
                     }
                     appState.glitchAmount = Double(clamp(normalized, min: 0, max: 1))
-                    print("🎛️ OSC: Set glitchAmount to \(appState.glitchAmount) (raw: \(value), normalized: \(normalized))")
                 }
 
             case .speed:
@@ -416,7 +401,7 @@ class OSCHandler: ObservableObject {
                 }
 
             case .colorShift:
-                // Handle both float and integer input from OSC
+                // Handle both float and integer input from OSC (Max sends integers)
                 var rawValue: Float?
                 if let intVal = arguments.first as? Int32 {
                     rawValue = Float(intVal)
@@ -437,7 +422,6 @@ class OSCHandler: ObservableObject {
                         normalized = value
                     }
                     appState.colorShift = Double(clamp(normalized, min: 0, max: 1))
-                    print("🎛️ OSC: Set colorShift to \(appState.colorShift) (raw: \(value))")
                 }
 
             case .freqMin:

@@ -121,6 +121,9 @@ fragment float4 textureCompositeFragment(
     // Sample base procedural layer
     float4 baseColor = baseTexture.sample(clampSampler, uv);
 
+    // DEBUG: Just pass through the base texture unchanged
+    return baseColor;
+
     // If no inspiration textures, just return base with some audio effects
     if (u.textureCount == 0) {
         // Apply audio-reactive UV distortion to base

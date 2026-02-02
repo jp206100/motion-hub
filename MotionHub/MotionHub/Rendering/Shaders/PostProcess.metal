@@ -24,9 +24,10 @@ fragment float4 postProcessFragment(
 
     float2 uv = in.texCoord;
 
-    // DEBUG: Output bright magenta to verify PostProcess shader is running
-    // If you see magenta, the shader is executing and outputting to screen
-    return float4(1.0, 0.0, 1.0, 1.0);
+    // DEBUG: Sample input texture and display it directly
+    // This shows what's coming from the glitch pass (renderTarget0)
+    float4 inputColor = inputTexture.sample(textureSampler, uv);
+    return inputColor;  // Show raw input - if black, earlier passes aren't working
 
     // If no input texture, generate a base pattern
     float4 color;

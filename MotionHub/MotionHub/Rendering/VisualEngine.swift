@@ -359,6 +359,32 @@ class VisualEngine {
         // Pass 3: Glitch (apply glitch effects) -> renderTarget0
         // Pass 4: Post Process (final grading) -> drawable
 
+        // DEBUG: Simplified single-pass rendering directly to drawable
+        // This bypasses all intermediate render targets to test basic rendering
+        let debugSinglePass = true
+        if debugSinglePass {
+            if let descriptor = view.currentRenderPassDescriptor,
+               let pipeline = pipelineStates["postProcess"] {
+                if renderCallCount <= 5 {
+                    print("  - DEBUG: Single-pass render directly to drawable")
+                }
+                guard let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
+                    print("  - DEBUG: Failed to create render command encoder!")
+                    return
+                }
+                encoder.setRenderPipelineState(pipeline)
+                var uniformsCopy = uniforms
+                encoder.setVertexBytes(&uniformsCopy, length: MemoryLayout<Uniforms>.stride, index: 0)
+                encoder.setFragmentBytes(&uniformsCopy, length: MemoryLayout<Uniforms>.stride, index: 0)
+                encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
+                encoder.endEncoding()
+
+                commandBuffer.present(drawable)
+                commandBuffer.commit()
+                return
+            }
+        }
+
         // === PASS 1: BASE LAYER ===
         if let baseTarget = renderTarget0 {
             if renderCallCount <= 5 { print("  - Pass 1: BaseLayer -> renderTarget0") }

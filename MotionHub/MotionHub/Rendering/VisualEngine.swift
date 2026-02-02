@@ -323,14 +323,21 @@ class VisualEngine {
 
     func render(in view: MTKView) {
         renderCallCount += 1
-        if renderCallCount <= 3 {
-            print("🎨 render() called #\(renderCallCount), drawable: \(view.currentDrawable != nil), drawableSize: \(view.drawableSize)")
+        if renderCallCount <= 5 {
+            print("🎨 render() called #\(renderCallCount)")
+            print("  - drawable: \(view.currentDrawable != nil)")
+            print("  - drawableSize: \(view.drawableSize)")
+            print("  - frame: \(view.frame)")
+            print("  - bounds: \(view.bounds)")
+            print("  - isHidden: \(view.isHidden)")
+            print("  - alphaValue: \(view.alphaValue)")
         }
 
         guard let drawable = view.currentDrawable,
               let commandBuffer = commandQueue.makeCommandBuffer() else {
-            if renderCallCount <= 3 {
+            if renderCallCount <= 5 {
                 print("🎨 render() early exit - no drawable or command buffer")
+                print("  - currentDrawable: \(view.currentDrawable)")
             }
             return
         }
@@ -340,6 +347,12 @@ class VisualEngine {
         uniforms.resolution = simd_float2(Float(viewportSize.width), Float(viewportSize.height))
         createRenderTargets(size: viewportSize)
 
+        if renderCallCount <= 5 {
+            print("  - renderTarget0: \(renderTarget0 != nil ? "\(renderTarget0!.width)x\(renderTarget0!.height)" : "nil")")
+            print("  - renderTarget1: \(renderTarget1 != nil ? "\(renderTarget1!.width)x\(renderTarget1!.height)" : "nil")")
+            print("  - pipelines: baseLayer=\(pipelineStates["baseLayer"] != nil), textureComposite=\(pipelineStates["textureComposite"] != nil), glitch=\(pipelineStates["glitch"] != nil), postProcess=\(pipelineStates["postProcess"] != nil)")
+        }
+
         // Multi-pass rendering pipeline:
         // Pass 1: Base Layer (procedural patterns) -> renderTarget0
         // Pass 2: Texture Composite (blend inspiration textures) -> renderTarget1
@@ -348,6 +361,7 @@ class VisualEngine {
 
         // === PASS 1: BASE LAYER ===
         if let baseTarget = renderTarget0 {
+            if renderCallCount <= 5 { print("  - Pass 1: BaseLayer -> renderTarget0") }
             renderPass(
                 commandBuffer: commandBuffer,
                 pipeline: pipelineStates["baseLayer"],
@@ -355,10 +369,13 @@ class VisualEngine {
                 inputTexture: nil,
                 additionalTextures: []
             )
+        } else if renderCallCount <= 5 {
+            print("  - Pass 1: SKIPPED - no renderTarget0!")
         }
 
         // === PASS 2: TEXTURE COMPOSITE ===
         if let compositeTarget = renderTarget1, let baseTarget = renderTarget0 {
+            if renderCallCount <= 5 { print("  - Pass 2: TextureComposite -> renderTarget1") }
             // Get inspiration textures (up to 4)
             var texturesToBind: [MTLTexture] = [baseTarget]
 
@@ -376,10 +393,13 @@ class VisualEngine {
                 targetTexture: compositeTarget,
                 textures: texturesToBind
             )
+        } else if renderCallCount <= 5 {
+            print("  - Pass 2: SKIPPED - missing targets!")
         }
 
         // === PASS 3: GLITCH ===
         if let glitchTarget = renderTarget0, let compositeTarget = renderTarget1 {
+            if renderCallCount <= 5 { print("  - Pass 3: Glitch -> renderTarget0") }
             renderPass(
                 commandBuffer: commandBuffer,
                 pipeline: pipelineStates["glitch"],
@@ -387,19 +407,31 @@ class VisualEngine {
                 inputTexture: compositeTarget,
                 additionalTextures: []
             )
+        } else if renderCallCount <= 5 {
+            print("  - Pass 3: SKIPPED - missing targets!")
         }
 
         // === PASS 4: POST PROCESS (to drawable) ===
         if let descriptor = view.currentRenderPassDescriptor,
            let glitchResult = renderTarget0 {
+            if renderCallCount <= 5 {
+                print("  - Pass 4: PostProcess -> drawable")
+                print("  - descriptor.colorAttachments[0].texture: \(descriptor.colorAttachments[0].texture != nil)")
+            }
             renderFinalPass(
                 commandBuffer: commandBuffer,
                 pipeline: pipelineStates["postProcess"],
                 descriptor: descriptor,
                 inputTexture: glitchResult
             )
+        } else if renderCallCount <= 5 {
+            print("  - Pass 4: SKIPPED - no descriptor or glitchResult!")
+            print("  - currentRenderPassDescriptor: \(view.currentRenderPassDescriptor != nil)")
         }
 
+        if renderCallCount <= 5 {
+            print("  - Presenting drawable and committing command buffer")
+        }
         commandBuffer.present(drawable)
         commandBuffer.commit()
     }

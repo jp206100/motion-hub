@@ -399,58 +399,23 @@ class VisualEngine {
             print("  - Pass 1: SKIPPED - no renderTarget0!")
         }
 
-        // === PASS 2: TEXTURE COMPOSITE ===
-        if let compositeTarget = renderTarget1, let baseTarget = renderTarget0 {
-            if renderCallCount <= 5 { print("  - Pass 2: TextureComposite -> renderTarget1") }
-            // Get inspiration textures (up to 4)
-            var texturesToBind: [MTLTexture] = [baseTarget]
-
-            for i in 0..<4 {
-                if i < inspirationTextures.count {
-                    texturesToBind.append(inspirationTextures[i])
-                } else if let placeholder = placeholderTexture {
-                    texturesToBind.append(placeholder)
-                }
-            }
-
-            renderPassWithMultipleTextures(
-                commandBuffer: commandBuffer,
-                pipeline: pipelineStates["textureComposite"],
-                targetTexture: compositeTarget,
-                textures: texturesToBind
-            )
-        } else if renderCallCount <= 5 {
-            print("  - Pass 2: SKIPPED - missing targets!")
-        }
-
-        // === PASS 3: GLITCH ===
-        if let glitchTarget = renderTarget0, let compositeTarget = renderTarget1 {
-            if renderCallCount <= 5 { print("  - Pass 3: Glitch -> renderTarget0") }
-            renderPass(
-                commandBuffer: commandBuffer,
-                pipeline: pipelineStates["glitch"],
-                targetTexture: glitchTarget,
-                inputTexture: compositeTarget,
-                additionalTextures: []
-            )
-        } else if renderCallCount <= 5 {
-            print("  - Pass 3: SKIPPED - missing targets!")
-        }
+        // === PASS 2: TEXTURE COMPOSITE === (SKIPPED FOR DEBUG)
+        // === PASS 3: GLITCH === (SKIPPED FOR DEBUG)
 
         // === PASS 4: POST PROCESS (to drawable) ===
-        // DEBUG: Sample from renderTarget1 (TextureComposite output) instead of renderTarget0
-        // This tests if TextureComposite has any output
+        // DEBUG: Read directly from renderTarget0 (BaseLayer output)
+        // This tests if BaseLayer has any output
         if let descriptor = view.currentRenderPassDescriptor,
-           let compositeResult = renderTarget1 {  // Changed from renderTarget0 to renderTarget1
+           let baseResult = renderTarget0 {  // Reading directly from BaseLayer output
             if renderCallCount <= 5 {
-                print("  - Pass 4: PostProcess -> drawable (reading from renderTarget1)")
+                print("  - Pass 4: PostProcess -> drawable (reading from renderTarget0 - BaseLayer)")
                 print("  - descriptor.colorAttachments[0].texture: \(descriptor.colorAttachments[0].texture != nil)")
             }
             renderFinalPass(
                 commandBuffer: commandBuffer,
                 pipeline: pipelineStates["postProcess"],
                 descriptor: descriptor,
-                inputTexture: compositeResult  // Changed from glitchResult
+                inputTexture: baseResult  // Reading directly from BaseLayer
             )
         } else if renderCallCount <= 5 {
             print("  - Pass 4: SKIPPED - no descriptor or glitchResult!")

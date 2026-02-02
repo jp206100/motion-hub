@@ -200,6 +200,19 @@ class VisualEngine {
         } else {
             print("🎨 ERROR: Failed to create simpleTest pipeline")
         }
+
+        // Simple test WITH TEXTURE pipeline (for debugging texture binding)
+        print("🎨 Creating simpleTestWithTexture pipeline...")
+        if let pipeline = createPipeline(
+            library: library,
+            vertexFunction: "vertexShader",
+            fragmentFunction: "simpleTestWithTextureFragment"
+        ) {
+            pipelineStates["simpleTestWithTexture"] = pipeline
+            print("🎨 simpleTestWithTexture pipeline created")
+        } else {
+            print("🎨 ERROR: Failed to create simpleTestWithTexture pipeline")
+        }
     }
 
     private func createPipeline(
@@ -425,17 +438,17 @@ class VisualEngine {
             print("  - Pass 1: SKIPPED - no renderTarget0!")
         }
 
-        // === PASS 2: TEXTURE COMPOSITE ===
-        // Use simplified version (just base texture, no inspiration textures)
+        // === PASS 2: TEST WITH TEXTURE ===
+        // Using simpleTestWithTexture to test if texture parameter causes issues
         if let compositeTarget = renderTarget1, let baseTarget = renderTarget0 {
             if renderCallCount <= 5 {
-                print("  - Pass 2: TextureCompositeSimple -> renderTarget1")
-                print("    - pipeline exists: \(pipelineStates["textureCompositeSimple"] != nil)")
+                print("  - Pass 2: simpleTestWithTexture -> renderTarget1")
+                print("    - pipeline exists: \(pipelineStates["simpleTestWithTexture"] != nil)")
             }
 
             renderPass(
                 commandBuffer: commandBuffer,
-                pipeline: pipelineStates["textureCompositeSimple"],
+                pipeline: pipelineStates["simpleTestWithTexture"],
                 targetTexture: compositeTarget,
                 inputTexture: baseTarget,  // Pass base layer output as input
                 additionalTextures: []

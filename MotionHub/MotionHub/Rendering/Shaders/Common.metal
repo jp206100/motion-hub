@@ -21,6 +21,18 @@ fragment float4 simpleTestFragment(
     return float4(uv.x, uv.y, 0.0, 1.0);
 }
 
+// MARK: - Simple Test WITH Texture parameter (for debugging)
+// Tests if adding a texture parameter breaks the shader
+fragment float4 simpleTestWithTextureFragment(
+    VertexOut in [[stage_in]],
+    constant Uniforms& u [[buffer(0)]],
+    texture2d<float> inputTexture [[texture(0)]]
+) {
+    float2 uv = in.texCoord;
+    // Output orange gradient - ignores texture completely
+    return float4(1.0, uv.x * 0.5, 0.0, 1.0);
+}
+
 // MARK: - Vertex Shader
 
 vertex VertexOut vertexShader(uint vertexID [[vertex_id]]) {

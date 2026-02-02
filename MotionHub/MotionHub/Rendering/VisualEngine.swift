@@ -438,17 +438,19 @@ class VisualEngine {
         }
 
         // === PASS 4: POST PROCESS (to drawable) ===
+        // DEBUG: Sample from renderTarget1 (TextureComposite output) instead of renderTarget0
+        // This tests if TextureComposite has any output
         if let descriptor = view.currentRenderPassDescriptor,
-           let glitchResult = renderTarget0 {
+           let compositeResult = renderTarget1 {  // Changed from renderTarget0 to renderTarget1
             if renderCallCount <= 5 {
-                print("  - Pass 4: PostProcess -> drawable")
+                print("  - Pass 4: PostProcess -> drawable (reading from renderTarget1)")
                 print("  - descriptor.colorAttachments[0].texture: \(descriptor.colorAttachments[0].texture != nil)")
             }
             renderFinalPass(
                 commandBuffer: commandBuffer,
                 pipeline: pipelineStates["postProcess"],
                 descriptor: descriptor,
-                inputTexture: glitchResult
+                inputTexture: compositeResult  // Changed from glitchResult
             )
         } else if renderCallCount <= 5 {
             print("  - Pass 4: SKIPPED - no descriptor or glitchResult!")

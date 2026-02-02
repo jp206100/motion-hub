@@ -361,7 +361,7 @@ class VisualEngine {
 
         // DEBUG: Simplified single-pass rendering directly to drawable
         // This bypasses all intermediate render targets to test basic rendering
-        let debugSinglePass = true
+        let debugSinglePass = false  // Set to false to test multi-pass pipeline
         if debugSinglePass {
             if let descriptor = view.currentRenderPassDescriptor,
                let pipeline = pipelineStates["postProcess"] {

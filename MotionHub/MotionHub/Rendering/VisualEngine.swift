@@ -402,14 +402,19 @@ class VisualEngine {
         // === PASS 2: TEXTURE COMPOSITE ===
         // DEBUG: Bind all required textures (shader declares 5 textures)
         if let compositeTarget = renderTarget1, let baseTarget = renderTarget0 {
-            if renderCallCount <= 5 { print("  - Pass 2: TextureComposite -> renderTarget1 (with all textures)") }
-
             // TextureComposite shader requires 5 textures - bind placeholders for missing ones
             var additionalTextures: [MTLTexture] = []
             for _ in 0..<4 {
                 if let placeholder = placeholderTexture {
                     additionalTextures.append(placeholder)
                 }
+            }
+
+            if renderCallCount <= 5 {
+                print("  - Pass 2: TextureComposite -> renderTarget1")
+                print("    - placeholderTexture exists: \(placeholderTexture != nil)")
+                print("    - additionalTextures count: \(additionalTextures.count)")
+                print("    - pipeline exists: \(pipelineStates["textureComposite"] != nil)")
             }
 
             renderPass(

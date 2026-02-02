@@ -399,23 +399,45 @@ class VisualEngine {
             print("  - Pass 1: SKIPPED - no renderTarget0!")
         }
 
-        // === PASS 2: TEXTURE COMPOSITE === (SKIPPED FOR DEBUG)
-        // === PASS 3: GLITCH === (SKIPPED FOR DEBUG)
+        // === PASS 2: TEXTURE COMPOSITE ===
+        if let compositeTarget = renderTarget1, let baseTarget = renderTarget0 {
+            if renderCallCount <= 5 { print("  - Pass 2: TextureComposite -> renderTarget1") }
+            // Get inspiration textures (up to 4)
+            var texturesToBind: [MTLTexture] = [baseTarget]
+
+            for i in 0..<4 {
+                if i < inspirationTextures.count {
+                    texturesToBind.append(inspirationTextures[i])
+                } else if let placeholder = placeholderTexture {
+                    texturesToBind.append(placeholder)
+                }
+            }
+
+            renderPassWithMultipleTextures(
+                commandBuffer: commandBuffer,
+                pipeline: pipelineStates["textureComposite"],
+                targetTexture: compositeTarget,
+                textures: texturesToBind
+            )
+        } else if renderCallCount <= 5 {
+            print("  - Pass 2: SKIPPED - missing targets!")
+        }
+
+        // === PASS 3: GLITCH === (SKIPPED - reading from renderTarget1 directly)
 
         // === PASS 4: POST PROCESS (to drawable) ===
-        // DEBUG: Read directly from renderTarget0 (BaseLayer output)
-        // This tests if BaseLayer has any output
+        // DEBUG: Read from renderTarget1 (TextureComposite output)
         if let descriptor = view.currentRenderPassDescriptor,
-           let baseResult = renderTarget0 {  // Reading directly from BaseLayer output
+           let compositeResult = renderTarget1 {
             if renderCallCount <= 5 {
-                print("  - Pass 4: PostProcess -> drawable (reading from renderTarget0 - BaseLayer)")
+                print("  - Pass 4: PostProcess -> drawable (reading from renderTarget1)")
                 print("  - descriptor.colorAttachments[0].texture: \(descriptor.colorAttachments[0].texture != nil)")
             }
             renderFinalPass(
                 commandBuffer: commandBuffer,
                 pipeline: pipelineStates["postProcess"],
                 descriptor: descriptor,
-                inputTexture: baseResult  // Reading directly from BaseLayer
+                inputTexture: compositeResult
             )
         } else if renderCallCount <= 5 {
             print("  - Pass 4: SKIPPED - no descriptor or glitchResult!")

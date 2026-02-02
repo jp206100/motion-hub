@@ -118,6 +118,10 @@ fragment float4 textureCompositeFragment(
     float bassLevel = u.audioBass;
     float intensity = u.intensity;
 
+    // DEBUG: Output cyan gradient to verify TextureComposite shader runs
+    // If you see cyan, the issue is with texture sampling, not the shader itself
+    return float4(0.0, uv.x, uv.y, 1.0);  // Cyan gradient
+
     // Sample base procedural layer
     float4 baseColor = baseTexture.sample(clampSampler, uv);
 

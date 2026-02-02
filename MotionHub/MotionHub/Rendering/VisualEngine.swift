@@ -399,16 +399,25 @@ class VisualEngine {
             print("  - Pass 1: SKIPPED - no renderTarget0!")
         }
 
-        // === PASS 2: TEST renderTarget1 ===
-        // DEBUG: Render BaseLayer shader to renderTarget1 to test if the texture works
-        if let compositeTarget = renderTarget1 {
-            if renderCallCount <= 5 { print("  - Pass 2: BaseLayer -> renderTarget1 (testing renderTarget1)") }
+        // === PASS 2: TEXTURE COMPOSITE ===
+        // DEBUG: Bind all required textures (shader declares 5 textures)
+        if let compositeTarget = renderTarget1, let baseTarget = renderTarget0 {
+            if renderCallCount <= 5 { print("  - Pass 2: TextureComposite -> renderTarget1 (with all textures)") }
+
+            // TextureComposite shader requires 5 textures - bind placeholders for missing ones
+            var additionalTextures: [MTLTexture] = []
+            for _ in 0..<4 {
+                if let placeholder = placeholderTexture {
+                    additionalTextures.append(placeholder)
+                }
+            }
+
             renderPass(
                 commandBuffer: commandBuffer,
-                pipeline: pipelineStates["baseLayer"],  // Use baseLayer pipeline instead
+                pipeline: pipelineStates["textureComposite"],
                 targetTexture: compositeTarget,
-                inputTexture: nil,
-                additionalTextures: []
+                inputTexture: baseTarget,  // texture(0)
+                additionalTextures: additionalTextures  // textures 1-4
             )
         } else if renderCallCount <= 5 {
             print("  - Pass 2: SKIPPED - missing targets!")

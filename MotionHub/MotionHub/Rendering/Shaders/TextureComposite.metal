@@ -97,7 +97,37 @@ float2 swirlDistort(float2 uv, float time, float audioLevel, float intensity) {
     return center + float2(cos(angle), sin(angle)) * dist;
 }
 
-// MARK: - Main Texture Composite Shader
+// MARK: - Simplified Texture Composite Shader (minimal parameters)
+// This version only takes the base texture - no inspiration textures or palette
+
+fragment float4 textureCompositeSimpleFragment(
+    VertexOut in [[stage_in]],
+    constant Uniforms& u [[buffer(0)]],
+    texture2d<float> baseTexture [[texture(0)]]
+) {
+    constexpr sampler clampSampler(mag_filter::linear, min_filter::linear, address::clamp_to_edge);
+
+    float2 uv = in.texCoord;
+    float t = u.time * u.speed * 0.2;
+    float audioMod = u.audioFreqBand;
+    float bassLevel = u.audioBass;
+    float intensity = u.intensity;
+
+    // Apply audio-reactive UV distortion
+    float2 distortedUV = audioRipple(uv, t, audioMod, intensity);
+    distortedUV = bassPulse(distortedUV, bassLevel, intensity);
+
+    // Sample base texture with distorted UVs
+    float4 baseColor = baseTexture.sample(clampSampler, distortedUV);
+
+    // Audio-reactive brightness pulse
+    float bassPulseAmount = 1.0 + bassLevel * intensity * 0.3;
+    baseColor.rgb *= bassPulseAmount;
+
+    return baseColor;
+}
+
+// MARK: - Full Texture Composite Shader (for when inspiration textures are loaded)
 
 fragment float4 textureCompositeFragment(
     VertexOut in [[stage_in]],
@@ -118,15 +148,8 @@ fragment float4 textureCompositeFragment(
     float bassLevel = u.audioBass;
     float intensity = u.intensity;
 
-    // DEBUG: Output cyan gradient to verify TextureComposite shader runs
-    // If you see cyan, the issue is with texture sampling, not the shader itself
-    return float4(0.0, uv.x, uv.y, 1.0);  // Cyan gradient
-
     // Sample base procedural layer
     float4 baseColor = baseTexture.sample(clampSampler, uv);
-
-    // DEBUG: Just pass through the base texture unchanged
-    return baseColor;
 
     // If no inspiration textures, just return base with some audio effects
     if (u.textureCount == 0) {

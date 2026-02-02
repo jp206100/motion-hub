@@ -399,15 +399,15 @@ class VisualEngine {
             print("  - Pass 1: SKIPPED - no renderTarget0!")
         }
 
-        // === PASS 2: TEXTURE COMPOSITE ===
-        // DEBUG: Use same renderPass function as Pass 1 to isolate issue
+        // === PASS 2: TEST renderTarget1 ===
+        // DEBUG: Render BaseLayer shader to renderTarget1 to test if the texture works
         if let compositeTarget = renderTarget1 {
-            if renderCallCount <= 5 { print("  - Pass 2: TextureComposite -> renderTarget1 (using renderPass)") }
+            if renderCallCount <= 5 { print("  - Pass 2: BaseLayer -> renderTarget1 (testing renderTarget1)") }
             renderPass(
                 commandBuffer: commandBuffer,
-                pipeline: pipelineStates["textureComposite"],
+                pipeline: pipelineStates["baseLayer"],  // Use baseLayer pipeline instead
                 targetTexture: compositeTarget,
-                inputTexture: renderTarget0,  // Pass baseLayer output as input
+                inputTexture: nil,
                 additionalTextures: []
             )
         } else if renderCallCount <= 5 {

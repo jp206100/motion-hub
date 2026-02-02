@@ -174,6 +174,19 @@ class VisualEngine {
         } else {
             print("🎨 ERROR: Failed to create postProcess pipeline")
         }
+
+        // Simple test pipeline (for debugging)
+        print("🎨 Creating simpleTest pipeline...")
+        if let pipeline = createPipeline(
+            library: library,
+            vertexFunction: "vertexShader",
+            fragmentFunction: "simpleTestFragment"
+        ) {
+            pipelineStates["simpleTest"] = pipeline
+            print("🎨 simpleTest pipeline created")
+        } else {
+            print("🎨 ERROR: Failed to create simpleTest pipeline")
+        }
     }
 
     private func createPipeline(
@@ -399,33 +412,23 @@ class VisualEngine {
             print("  - Pass 1: SKIPPED - no renderTarget0!")
         }
 
-        // === PASS 2: TEXTURE COMPOSITE ===
-        // DEBUG: Bind all required textures (shader declares 5 textures)
-        if let compositeTarget = renderTarget1, let baseTarget = renderTarget0 {
-            // TextureComposite shader requires 5 textures - bind placeholders for missing ones
-            var additionalTextures: [MTLTexture] = []
-            for _ in 0..<4 {
-                if let placeholder = placeholderTexture {
-                    additionalTextures.append(placeholder)
-                }
-            }
-
+        // === PASS 2: SIMPLE TEST (debugging TextureComposite issue) ===
+        // Using simpleTest pipeline which has minimal requirements
+        if let compositeTarget = renderTarget1 {
             if renderCallCount <= 5 {
-                print("  - Pass 2: TextureComposite -> renderTarget1")
-                print("    - placeholderTexture exists: \(placeholderTexture != nil)")
-                print("    - additionalTextures count: \(additionalTextures.count)")
-                print("    - pipeline exists: \(pipelineStates["textureComposite"] != nil)")
+                print("  - Pass 2: simpleTest -> renderTarget1")
+                print("    - pipeline exists: \(pipelineStates["simpleTest"] != nil)")
             }
 
             renderPass(
                 commandBuffer: commandBuffer,
-                pipeline: pipelineStates["textureComposite"],
+                pipeline: pipelineStates["simpleTest"],
                 targetTexture: compositeTarget,
-                inputTexture: baseTarget,  // texture(0)
-                additionalTextures: additionalTextures  // textures 1-4
+                inputTexture: nil,  // simpleTest doesn't need input texture
+                additionalTextures: []
             )
         } else if renderCallCount <= 5 {
-            print("  - Pass 2: SKIPPED - missing targets!")
+            print("  - Pass 2: SKIPPED - missing renderTarget1!")
         }
 
         // === PASS 3: GLITCH === (SKIPPED - reading from renderTarget1 directly)

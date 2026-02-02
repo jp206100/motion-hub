@@ -10,6 +10,17 @@
 
 using namespace metal;
 
+// MARK: - Simple Test Fragment Shader (for debugging)
+// This shader has minimal dependencies to test if pipelines work
+fragment float4 simpleTestFragment(
+    VertexOut in [[stage_in]],
+    constant Uniforms& u [[buffer(0)]]
+) {
+    float2 uv = in.texCoord;
+    // Output yellow gradient to distinguish from other test colors
+    return float4(uv.x, uv.y, 0.0, 1.0);
+}
+
 // MARK: - Vertex Shader
 
 vertex VertexOut vertexShader(uint vertexID [[vertex_id]]) {

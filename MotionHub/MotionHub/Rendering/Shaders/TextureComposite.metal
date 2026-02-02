@@ -108,6 +108,10 @@ fragment float4 textureCompositeSimpleFragment(
     constexpr sampler clampSampler(mag_filter::linear, min_filter::linear, address::clamp_to_edge);
 
     float2 uv = in.texCoord;
+
+    // DEBUG: Test if shader runs at all - output magenta gradient
+    return float4(uv.x, 0.0, uv.y, 1.0);  // Magenta gradient
+
     float t = u.time * u.speed * 0.2;
     float audioMod = u.audioFreqBand;
     float bassLevel = u.audioBass;

@@ -400,24 +400,15 @@ class VisualEngine {
         }
 
         // === PASS 2: TEXTURE COMPOSITE ===
-        if let compositeTarget = renderTarget1, let baseTarget = renderTarget0 {
-            if renderCallCount <= 5 { print("  - Pass 2: TextureComposite -> renderTarget1") }
-            // Get inspiration textures (up to 4)
-            var texturesToBind: [MTLTexture] = [baseTarget]
-
-            for i in 0..<4 {
-                if i < inspirationTextures.count {
-                    texturesToBind.append(inspirationTextures[i])
-                } else if let placeholder = placeholderTexture {
-                    texturesToBind.append(placeholder)
-                }
-            }
-
-            renderPassWithMultipleTextures(
+        // DEBUG: Use same renderPass function as Pass 1 to isolate issue
+        if let compositeTarget = renderTarget1 {
+            if renderCallCount <= 5 { print("  - Pass 2: TextureComposite -> renderTarget1 (using renderPass)") }
+            renderPass(
                 commandBuffer: commandBuffer,
                 pipeline: pipelineStates["textureComposite"],
                 targetTexture: compositeTarget,
-                textures: texturesToBind
+                inputTexture: renderTarget0,  // Pass baseLayer output as input
+                additionalTextures: []
             )
         } else if renderCallCount <= 5 {
             print("  - Pass 2: SKIPPED - missing targets!")

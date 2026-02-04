@@ -78,6 +78,7 @@ class VisualEngine {
             glitchAmount: 0.35,
             speed: 2.0,
             colorShift: 0.15,
+            pulseStrength: 0.6,
             isMonochrome: 0,
             resolution: simd_float2(1920, 1080),
             randomSeed: UInt32.random(in: 0..<UInt32.max),
@@ -271,6 +272,7 @@ class VisualEngine {
         uniforms.glitchAmount = Float(appState.glitchAmount)
         uniforms.speed = Float(appState.speed)
         uniforms.colorShift = Float(appState.colorShift)
+        uniforms.pulseStrength = Float(appState.pulseStrength)
         uniforms.isMonochrome = appState.isMonochrome ? 1 : 0
 
         // Pattern selection stays consistent until reset
@@ -516,6 +518,7 @@ struct Uniforms {
     var glitchAmount: Float
     var speed: Float
     var colorShift: Float
+    var pulseStrength: Float
     var isMonochrome: Int32
 
     // Resolution

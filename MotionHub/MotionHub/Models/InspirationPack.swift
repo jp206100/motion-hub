@@ -51,6 +51,7 @@ struct PackSettings: Codable {
     var glitchAmount: Double
     var speed: Int
     var colorShift: Double
+    var pulseStrength: Double
     var freqMin: Double
     var freqMax: Double
     var isMonochrome: Bool
@@ -61,11 +62,38 @@ struct PackSettings: Codable {
         glitchAmount: 0.35,
         speed: 2,
         colorShift: 0.15,
+        pulseStrength: 0.6,
         freqMin: 80,
         freqMax: 4200,
         isMonochrome: false,
         targetFPS: 30
     )
+
+    // Support loading old packs without pulseStrength
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        intensity = try container.decode(Double.self, forKey: .intensity)
+        glitchAmount = try container.decode(Double.self, forKey: .glitchAmount)
+        speed = try container.decode(Int.self, forKey: .speed)
+        colorShift = try container.decode(Double.self, forKey: .colorShift)
+        pulseStrength = try container.decodeIfPresent(Double.self, forKey: .pulseStrength) ?? 0.6
+        freqMin = try container.decode(Double.self, forKey: .freqMin)
+        freqMax = try container.decode(Double.self, forKey: .freqMax)
+        isMonochrome = try container.decode(Bool.self, forKey: .isMonochrome)
+        targetFPS = try container.decode(Int.self, forKey: .targetFPS)
+    }
+
+    init(intensity: Double, glitchAmount: Double, speed: Int, colorShift: Double, pulseStrength: Double = 0.6, freqMin: Double, freqMax: Double, isMonochrome: Bool, targetFPS: Int) {
+        self.intensity = intensity
+        self.glitchAmount = glitchAmount
+        self.speed = speed
+        self.colorShift = colorShift
+        self.pulseStrength = pulseStrength
+        self.freqMin = freqMin
+        self.freqMax = freqMax
+        self.isMonochrome = isMonochrome
+        self.targetFPS = targetFPS
+    }
 }
 
 // MARK: - Pack Info (lightweight for listing)

@@ -31,6 +31,7 @@ class MIDIHandler: ObservableObject {
         case freqMax = 76        // CC 76
         case monochrome = 77     // CC 77 (value > 64 = on)
         case reset = 78          // CC 78 (any value triggers)
+        case pulseStrength = 79  // CC 79 (beat response strength)
     }
 
     init() {
@@ -169,6 +170,9 @@ class MIDIHandler: ObservableObject {
 
             case .colorShift:
                 appState.colorShift = Double(value) / 127.0
+
+            case .pulseStrength:
+                appState.pulseStrength = Double(value) / 127.0
 
             case .freqMin:
                 appState.freqMin = self.mapToFrequency(value)

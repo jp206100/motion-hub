@@ -40,9 +40,10 @@ class AudioAnalyzer: ObservableObject {
     private var window: [Float]
     private var magnitudes: [Float]
 
-    // MARK: - Smoothing
+    // MARK: - Smoothing (asymmetric: fast attack, slow decay for punchy beats)
     private var smoothedLevels: AudioLevels = .zero
-    private let smoothingFactor: Float = 0.7
+    private let attackFactor: Float = 0.15   // Fast attack - respond quickly to beats
+    private let decayFactor: Float = 0.92    // Slow decay - sustain the visual impact
 
     // MARK: - State
     private var isRunning = false
@@ -623,7 +624,14 @@ class AudioAnalyzer: ObservableObject {
     }
 
     private func smooth(_ current: Float, target: Float) -> Float {
-        return current * smoothingFactor + target * (1.0 - smoothingFactor)
+        // Asymmetric smoothing: fast attack for punchy beats, slow decay for sustained impact
+        if target > current {
+            // Attack: respond quickly to rising levels (beats)
+            return current + (target - current) * (1.0 - attackFactor)
+        } else {
+            // Decay: slowly fall back to let visuals sustain
+            return current * decayFactor + target * (1.0 - decayFactor)
+        }
     }
 
     // MARK: - Public Methods

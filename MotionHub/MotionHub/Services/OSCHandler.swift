@@ -44,6 +44,7 @@ class OSCHandler: ObservableObject {
         case glitchAmount = "/motionhub/glitch"
         case speed = "/motionhub/speed"
         case colorShift = "/motionhub/colorshift"
+        case pulseStrength = "/motionhub/pulse"
         case freqMin = "/motionhub/freqmin"
         case freqMax = "/motionhub/freqmax"
         case monochrome = "/motionhub/monochrome"
@@ -60,6 +61,9 @@ class OSCHandler: ObservableObject {
             case "/motionhub/glitchamount": return .glitchAmount
             case "/motionhub/color": return .colorShift
             case "/motionhub/color_shift": return .colorShift
+            case "/motionhub/pulsestrength": return .pulseStrength
+            case "/motionhub/pulse_strength": return .pulseStrength
+            case "/motionhub/beat": return .pulseStrength
             case "/motionhub/freq_min": return .freqMin
             case "/motionhub/freq_max": return .freqMax
             case "/motionhub/mono": return .monochrome
@@ -422,6 +426,31 @@ class OSCHandler: ObservableObject {
                         normalized = value
                     }
                     appState.colorShift = Double(clamp(normalized, min: 0, max: 1))
+                }
+
+            case .pulseStrength:
+                // Handle both float and integer input from OSC
+                var rawValue: Float?
+                if let intVal = arguments.first as? Int32 {
+                    rawValue = Float(intVal)
+                } else if let intVal = arguments.first as? Int {
+                    rawValue = Float(intVal)
+                } else {
+                    rawValue = self.extractFloat(from: arguments)
+                }
+
+                if let value = rawValue {
+                    // Normalize: accept 0-1 or 0-100 range
+                    let normalized: Float
+                    if value > 1.0 && value <= 100.0 {
+                        normalized = value / 100.0
+                    } else if value > 100.0 {
+                        normalized = 1.0
+                    } else {
+                        normalized = value
+                    }
+                    appState.pulseStrength = Double(clamp(normalized, min: 0, max: 1))
+                    print("🎛️ OSC: Set pulseStrength to \(appState.pulseStrength)")
                 }
 
             case .freqMin:

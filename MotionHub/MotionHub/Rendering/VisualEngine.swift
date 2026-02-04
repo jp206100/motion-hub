@@ -213,6 +213,19 @@ class VisualEngine {
         } else {
             print("🎨 ERROR: Failed to create simpleTestWithTexture pipeline")
         }
+
+        // Working composite pipeline (in Common.metal, not TextureComposite.metal)
+        print("🎨 Creating workingComposite pipeline...")
+        if let pipeline = createPipeline(
+            library: library,
+            vertexFunction: "vertexShader",
+            fragmentFunction: "workingCompositeFragment"
+        ) {
+            pipelineStates["workingComposite"] = pipeline
+            print("🎨 workingComposite pipeline created")
+        } else {
+            print("🎨 ERROR: Failed to create workingComposite pipeline")
+        }
     }
 
     private func createPipeline(
@@ -438,19 +451,19 @@ class VisualEngine {
             print("  - Pass 1: SKIPPED - no renderTarget0!")
         }
 
-        // === PASS 2: TEST WITH TEXTURE ===
-        // Using simpleTestWithTexture to test if texture parameter causes issues
+        // === PASS 2: WORKING COMPOSITE ===
+        // Using workingComposite from Common.metal (TextureComposite.metal has issues)
         if let compositeTarget = renderTarget1, let baseTarget = renderTarget0 {
             if renderCallCount <= 5 {
-                print("  - Pass 2: simpleTestWithTexture -> renderTarget1")
-                print("    - pipeline exists: \(pipelineStates["simpleTestWithTexture"] != nil)")
+                print("  - Pass 2: workingComposite -> renderTarget1")
+                print("    - pipeline exists: \(pipelineStates["workingComposite"] != nil)")
             }
 
             renderPass(
                 commandBuffer: commandBuffer,
-                pipeline: pipelineStates["simpleTestWithTexture"],
+                pipeline: pipelineStates["workingComposite"],
                 targetTexture: compositeTarget,
-                inputTexture: baseTarget,  // Pass base layer output as input
+                inputTexture: baseTarget,
                 additionalTextures: []
             )
         } else if renderCallCount <= 5 {

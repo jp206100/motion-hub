@@ -290,10 +290,11 @@ fragment float4 baseLayerFragment(
     float2 uv = in.texCoord;
     float t = u.time * u.speed * 0.3;
 
-    // Audio modulation - make it very responsive with intensity
+    // Audio modulation - pulseStrength controls beat response, intensity controls overall visual intensity
     float audioMod = u.audioFreqBand;
-    float bassBoost = u.audioBass * 1.5;
+    float bassBoost = u.audioBass * 2.0;  // Stronger bass boost
     float intensity = u.intensity;
+    float pulse = u.pulseStrength;
 
     // Select pattern based on randomSeed
     int pattern = u.activePattern % 8;
@@ -328,12 +329,17 @@ fragment float4 baseLayerFragment(
             break;
     }
 
-    // Global audio-reactive pulsation - scales with intensity
-    float globalPulse = 1.0 + (bassBoost + audioMod) * intensity * 0.4;
+    // Global audio-reactive pulsation - pulse controls beat response strength
+    // Higher multipliers (0.8) for more dramatic beat response
+    float globalPulse = 1.0 + (bassBoost + audioMod) * pulse * 0.8;
     color *= globalPulse;
 
+    // Additional brightness flash on strong beats (using audioPeak for transients)
+    float beatFlash = u.audioPeak * pulse * 0.5;
+    color += color * beatFlash;
+
     // Subtle screen-wide breathing effect tied to audio
-    float breathing = 1.0 + sin(t * 2.0) * audioMod * intensity * 0.2;
+    float breathing = 1.0 + sin(t * 2.0) * audioMod * pulse * 0.3;
     color *= breathing;
 
     // Monochrome mode

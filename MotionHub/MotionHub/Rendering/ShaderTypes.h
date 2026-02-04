@@ -28,10 +28,11 @@ struct Uniforms {
     float audioSmooth;       // Smoothed overall level
 
     // Controls
-    float intensity;         // 0-1 (affects saturation AND audio pulsation strength)
+    float intensity;         // 0-1 (affects saturation and visual intensity)
     float glitchAmount;      // 0-1 (controls glitch probability and severity)
     float speed;             // 1-4 multiplier
     float colorShift;        // 0-1
+    float pulseStrength;     // 0-1 (how strongly visuals respond to audio beats)
     int isMonochrome;        // 0 or 1
 
     // Resolution

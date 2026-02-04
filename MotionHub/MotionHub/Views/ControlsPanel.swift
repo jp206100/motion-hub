@@ -107,6 +107,19 @@ struct ControlsPanel: View {
                     displayValue: "\(Int(appState.colorShift * 100))%"
                 )
             }
+
+            // Row 3: Pulse Strength (dedicated beat response control)
+            HStack(spacing: 20) {
+                KnobView(
+                    value: $appState.pulseStrength,
+                    label: "Pulse",
+                    displayValue: "\(Int(appState.pulseStrength * 100))%"
+                )
+
+                // Empty space to maintain symmetry, or could add another control later
+                Spacer()
+                    .frame(width: 80)
+            }
         }
     }
 

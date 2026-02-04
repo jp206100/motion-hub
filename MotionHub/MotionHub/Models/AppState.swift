@@ -15,6 +15,7 @@ class AppState: ObservableObject {
     @Published var glitchAmount: Double = 0.35    // 0.0 - 1.0
     @Published var speed: Int = 2                 // 1, 2, 3, 4 (multiplier)
     @Published var colorShift: Double = 0.15      // 0.0 - 1.0
+    @Published var pulseStrength: Double = 0.6    // 0.0 - 1.0 (how strongly visuals react to beats)
     @Published var freqMin: Double = 80           // Hz (20 - 20000)
     @Published var freqMax: Double = 4200         // Hz (20 - 20000)
     @Published var isMonochrome: Bool = false
@@ -56,6 +57,7 @@ class AppState: ObservableObject {
         glitchAmount = settings.glitchAmount
         speed = settings.speed
         colorShift = settings.colorShift
+        pulseStrength = settings.pulseStrength
         freqMin = settings.freqMin
         freqMax = settings.freqMax
         isMonochrome = settings.isMonochrome
@@ -68,6 +70,7 @@ class AppState: ObservableObject {
             glitchAmount: glitchAmount,
             speed: speed,
             colorShift: colorShift,
+            pulseStrength: pulseStrength,
             freqMin: freqMin,
             freqMax: freqMax,
             isMonochrome: isMonochrome,

@@ -10,6 +10,10 @@
 
 using namespace metal;
 
+// Forward declarations for color space conversions
+float3 rgb2hsv(float3 c);
+float3 hsv2rgb(float3 c);
+
 // MARK: - Simple Test Fragment Shader (for debugging)
 // This shader has minimal dependencies to test if pipelines work
 fragment float4 simpleTestFragment(
@@ -43,13 +47,29 @@ fragment float4 workingCompositeFragment(
     constexpr sampler clampSampler(mag_filter::linear, min_filter::linear, address::clamp_to_edge);
 
     float2 uv = in.texCoord;
+    float pulse = u.pulseStrength;
 
     // Sample base texture
     float4 baseColor = baseTexture.sample(clampSampler, uv);
 
-    // Audio-reactive brightness pulse
-    float bassPulseAmount = 1.0 + u.audioBass * u.intensity * 0.3;
-    baseColor.rgb *= bassPulseAmount;
+    // Audio-reactive brightness pulse - stronger effect using pulseStrength
+    // Bass creates the main "thump" feel with up to 80% brightness increase at max pulse
+    float bassPulse = 1.0 + u.audioBass * pulse * 0.8;
+    baseColor.rgb *= bassPulse;
+
+    // Mid frequencies add saturation boost for punch
+    float midBoost = u.audioMid * pulse * 0.4;
+    float3 hsv = rgb2hsv(baseColor.rgb);
+    hsv.y = min(1.0, hsv.y * (1.0 + midBoost));
+    baseColor.rgb = hsv2rgb(hsv);
+
+    // High frequencies add sparkle/glow
+    float highGlow = u.audioHigh * pulse * 0.2;
+    baseColor.rgb += baseColor.rgb * highGlow;
+
+    // Peak detection flash for transients (drum hits, etc.)
+    float peakFlash = u.audioPeak * pulse * 0.3;
+    baseColor.rgb += float3(peakFlash);
 
     return baseColor;
 }

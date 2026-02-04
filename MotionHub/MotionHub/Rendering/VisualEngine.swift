@@ -470,25 +470,38 @@ class VisualEngine {
             print("  - Pass 2: SKIPPED - missing render targets!")
         }
 
-        // === PASS 3: GLITCH === (SKIPPED - reading from renderTarget1 directly)
+        // === PASS 3: GLITCH ===
+        // Glitch reads from renderTarget1 (composite), writes to renderTarget0
+        if let glitchTarget = renderTarget0, let compositeResult = renderTarget1 {
+            if renderCallCount <= 5 {
+                print("  - Pass 3: Glitch -> renderTarget0")
+            }
+            renderPass(
+                commandBuffer: commandBuffer,
+                pipeline: pipelineStates["glitch"],
+                targetTexture: glitchTarget,
+                inputTexture: compositeResult,
+                additionalTextures: []
+            )
+        } else if renderCallCount <= 5 {
+            print("  - Pass 3: SKIPPED - missing render targets!")
+        }
 
         // === PASS 4: POST PROCESS (to drawable) ===
-        // DEBUG: Read from renderTarget1 (TextureComposite output)
+        // PostProcess reads from renderTarget0 (glitch output), writes to screen
         if let descriptor = view.currentRenderPassDescriptor,
-           let compositeResult = renderTarget1 {
+           let glitchResult = renderTarget0 {
             if renderCallCount <= 5 {
-                print("  - Pass 4: PostProcess -> drawable (reading from renderTarget1)")
-                print("  - descriptor.colorAttachments[0].texture: \(descriptor.colorAttachments[0].texture != nil)")
+                print("  - Pass 4: PostProcess -> drawable")
             }
             renderFinalPass(
                 commandBuffer: commandBuffer,
                 pipeline: pipelineStates["postProcess"],
                 descriptor: descriptor,
-                inputTexture: compositeResult
+                inputTexture: glitchResult
             )
         } else if renderCallCount <= 5 {
             print("  - Pass 4: SKIPPED - no descriptor or glitchResult!")
-            print("  - currentRenderPassDescriptor: \(view.currentRenderPassDescriptor != nil)")
         }
 
         if renderCallCount <= 5 {

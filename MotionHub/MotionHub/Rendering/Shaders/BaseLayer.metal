@@ -290,10 +290,6 @@ fragment float4 baseLayerFragment(
     float2 uv = in.texCoord;
     float t = u.time * u.speed * 0.3;
 
-    // DEBUG: Output a simple gradient to verify shader is running
-    // Remove this block after testing
-    return float4(uv.x, uv.y, 0.5, 1.0);  // Should show red-green gradient
-
     // Audio modulation - make it very responsive with intensity
     float audioMod = u.audioFreqBand;
     float bassBoost = u.audioBass * 1.5;

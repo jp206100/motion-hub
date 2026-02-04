@@ -24,12 +24,7 @@ fragment float4 postProcessFragment(
 
     float2 uv = in.texCoord;
 
-    // DEBUG: Sample input texture and display it directly
-    // This shows what's coming from the glitch pass (renderTarget0)
-    float4 inputColor = inputTexture.sample(textureSampler, uv);
-    return inputColor;  // Show raw input - if black, earlier passes aren't working
-
-    // If no input texture, generate a base pattern
+    // Sample input texture
     float4 color;
     if (inputTexture.get_width() > 0) {
         color = inputTexture.sample(textureSampler, uv);

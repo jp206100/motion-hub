@@ -24,7 +24,7 @@ fragment float4 postProcessFragment(
 
     float2 uv = in.texCoord;
 
-    // If no input texture, generate a base pattern
+    // Sample input texture
     float4 color;
     if (inputTexture.get_width() > 0) {
         color = inputTexture.sample(textureSampler, uv);

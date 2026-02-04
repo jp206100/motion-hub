@@ -10,6 +10,50 @@
 
 using namespace metal;
 
+// MARK: - Simple Test Fragment Shader (for debugging)
+// This shader has minimal dependencies to test if pipelines work
+fragment float4 simpleTestFragment(
+    VertexOut in [[stage_in]],
+    constant Uniforms& u [[buffer(0)]]
+) {
+    float2 uv = in.texCoord;
+    // Output yellow gradient to distinguish from other test colors
+    return float4(uv.x, uv.y, 0.0, 1.0);
+}
+
+// MARK: - Simple Test WITH Texture parameter (for debugging)
+// Tests if adding a texture parameter breaks the shader
+fragment float4 simpleTestWithTextureFragment(
+    VertexOut in [[stage_in]],
+    constant Uniforms& u [[buffer(0)]],
+    texture2d<float> inputTexture [[texture(0)]]
+) {
+    float2 uv = in.texCoord;
+    // Output orange gradient - ignores texture completely
+    return float4(1.0, uv.x * 0.5, 0.0, 1.0);
+}
+
+// MARK: - Working Composite Shader (for Pass 2)
+// This passes through the base texture with audio-reactive effects
+fragment float4 workingCompositeFragment(
+    VertexOut in [[stage_in]],
+    constant Uniforms& u [[buffer(0)]],
+    texture2d<float> baseTexture [[texture(0)]]
+) {
+    constexpr sampler clampSampler(mag_filter::linear, min_filter::linear, address::clamp_to_edge);
+
+    float2 uv = in.texCoord;
+
+    // Sample base texture
+    float4 baseColor = baseTexture.sample(clampSampler, uv);
+
+    // Audio-reactive brightness pulse
+    float bassPulseAmount = 1.0 + u.audioBass * u.intensity * 0.3;
+    baseColor.rgb *= bassPulseAmount;
+
+    return baseColor;
+}
+
 // MARK: - Vertex Shader
 
 vertex VertexOut vertexShader(uint vertexID [[vertex_id]]) {

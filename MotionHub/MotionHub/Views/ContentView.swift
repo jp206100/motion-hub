@@ -16,37 +16,42 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            // Main three-panel layout
-            HStack(spacing: 0) {
-                // Left: Inspiration Panel (280px)
-                InspirationPanel()
-                    .frame(width: 280)
-                    .background(AppColors.bgDark)
+            if appState.isPerformanceMode {
+                // Fullscreen performance mode - visuals only
+                FullscreenView()
+            } else {
+                // Main three-panel layout
+                HStack(spacing: 0) {
+                    // Left: Inspiration Panel (280px)
+                    InspirationPanel()
+                        .frame(width: 280)
+                        .background(AppColors.bgDark)
 
-                Divider()
-                    .background(AppColors.border)
+                    Divider()
+                        .background(AppColors.border)
 
-                // Center: Preview Panel (flexible)
-                PreviewPanel()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(AppColors.bgDarkest)
+                    // Center: Preview Panel (flexible)
+                    PreviewPanel()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(AppColors.bgDarkest)
 
-                Divider()
-                    .background(AppColors.border)
+                    Divider()
+                        .background(AppColors.border)
 
-                // Right: Controls Panel (360px)
-                ControlsPanel()
-                    .frame(width: 360)
-                    .background(AppColors.bgDark)
-            }
+                    // Right: Controls Panel (360px)
+                    ControlsPanel()
+                        .frame(width: 360)
+                        .background(AppColors.bgDark)
+                }
 
-            // Modals
-            if appState.showSavePackModal {
-                SavePackModal()
-            }
+                // Modals
+                if appState.showSavePackModal {
+                    SavePackModal()
+                }
 
-            if appState.showLoadPackModal {
-                LoadPackModal()
+                if appState.showLoadPackModal {
+                    LoadPackModal()
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

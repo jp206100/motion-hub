@@ -52,13 +52,9 @@ class VisualEngine {
     weak var appState: AppState?
 
     init?(device: MTLDevice) {
-        print("🎨 VisualEngine init starting...")
-
         guard let queue = device.makeCommandQueue() else {
-            print("🎨 ERROR: Failed to create command queue")
             return nil
         }
-        print("🎨 Command queue created")
 
         self.device = device
         self.commandQueue = queue
@@ -96,135 +92,57 @@ class VisualEngine {
         activePattern = Int32(currentSeed % 8)
         uniforms.activePattern = activePattern
 
-        print("🎨 Uniforms initialized, pattern: \(activePattern)")
-
         setupPipelines()
-        print("🎨 Pipelines setup complete, count: \(pipelineStates.count)")
 
-        // Create placeholder texture
+        // Create placeholder texture and palette buffer
         placeholderTexture = textureLoader?.createPlaceholderTexture()
-
-        // Create default empty palette buffer
         paletteBuffer = createDefaultPaletteBuffer()
-        print("🎨 Default palette buffer created")
 
         observeResetNotification()
-        print("🎨 VisualEngine init complete")
     }
 
     // MARK: - Setup
 
     private func setupPipelines() {
-        print("🎨 Setting up pipelines...")
-
         guard let library = device.makeDefaultLibrary() else {
-            print("🎨 ERROR: Failed to create Metal library")
+            print("Failed to create Metal library")
             return
         }
-        print("🎨 Metal library created")
 
-        // Base layer pipeline
-        print("🎨 Creating baseLayer pipeline...")
+        // Base layer pipeline (procedural patterns)
         if let pipeline = createPipeline(
             library: library,
             vertexFunction: "vertexShader",
             fragmentFunction: "baseLayerFragment"
         ) {
             pipelineStates["baseLayer"] = pipeline
-            print("🎨 baseLayer pipeline created")
-        } else {
-            print("🎨 ERROR: Failed to create baseLayer pipeline")
         }
 
-        // Simplified texture composite pipeline (for base texture only)
-        print("🎨 Creating textureCompositeSimple pipeline...")
-        if let pipeline = createPipeline(
-            library: library,
-            vertexFunction: "vertexShader",
-            fragmentFunction: "textureCompositeSimpleFragment"
-        ) {
-            pipelineStates["textureCompositeSimple"] = pipeline
-            print("🎨 textureCompositeSimple pipeline created")
-        } else {
-            print("🎨 ERROR: Failed to create textureCompositeSimple pipeline")
-        }
-
-        // Full texture composite pipeline (for inspiration textures)
-        print("🎨 Creating textureComposite pipeline...")
-        if let pipeline = createPipeline(
-            library: library,
-            vertexFunction: "vertexShader",
-            fragmentFunction: "textureCompositeFragment"
-        ) {
-            pipelineStates["textureComposite"] = pipeline
-            print("🎨 textureComposite pipeline created")
-        } else {
-            print("🎨 ERROR: Failed to create textureComposite pipeline")
-        }
-
-        // Glitch pipeline
-        print("🎨 Creating glitch pipeline...")
-        if let pipeline = createPipeline(
-            library: library,
-            vertexFunction: "vertexShader",
-            fragmentFunction: "glitchFragment"
-        ) {
-            pipelineStates["glitch"] = pipeline
-            print("🎨 glitch pipeline created")
-        } else {
-            print("🎨 ERROR: Failed to create glitch pipeline")
-        }
-
-        // Post-process pipeline
-        print("🎨 Creating postProcess pipeline...")
-        if let pipeline = createPipeline(
-            library: library,
-            vertexFunction: "vertexShader",
-            fragmentFunction: "postProcessFragment"
-        ) {
-            pipelineStates["postProcess"] = pipeline
-            print("🎨 postProcess pipeline created")
-        } else {
-            print("🎨 ERROR: Failed to create postProcess pipeline")
-        }
-
-        // Simple test pipeline (for debugging)
-        print("🎨 Creating simpleTest pipeline...")
-        if let pipeline = createPipeline(
-            library: library,
-            vertexFunction: "vertexShader",
-            fragmentFunction: "simpleTestFragment"
-        ) {
-            pipelineStates["simpleTest"] = pipeline
-            print("🎨 simpleTest pipeline created")
-        } else {
-            print("🎨 ERROR: Failed to create simpleTest pipeline")
-        }
-
-        // Simple test WITH TEXTURE pipeline (for debugging texture binding)
-        print("🎨 Creating simpleTestWithTexture pipeline...")
-        if let pipeline = createPipeline(
-            library: library,
-            vertexFunction: "vertexShader",
-            fragmentFunction: "simpleTestWithTextureFragment"
-        ) {
-            pipelineStates["simpleTestWithTexture"] = pipeline
-            print("🎨 simpleTestWithTexture pipeline created")
-        } else {
-            print("🎨 ERROR: Failed to create simpleTestWithTexture pipeline")
-        }
-
-        // Working composite pipeline (in Common.metal, not TextureComposite.metal)
-        print("🎨 Creating workingComposite pipeline...")
+        // Working composite pipeline (audio-reactive effects)
         if let pipeline = createPipeline(
             library: library,
             vertexFunction: "vertexShader",
             fragmentFunction: "workingCompositeFragment"
         ) {
             pipelineStates["workingComposite"] = pipeline
-            print("🎨 workingComposite pipeline created")
-        } else {
-            print("🎨 ERROR: Failed to create workingComposite pipeline")
+        }
+
+        // Glitch pipeline
+        if let pipeline = createPipeline(
+            library: library,
+            vertexFunction: "vertexShader",
+            fragmentFunction: "glitchFragment"
+        ) {
+            pipelineStates["glitch"] = pipeline
+        }
+
+        // Post-process pipeline (final grading)
+        if let pipeline = createPipeline(
+            library: library,
+            vertexFunction: "vertexShader",
+            fragmentFunction: "postProcessFragment"
+        ) {
+            pipelineStates["postProcess"] = pipeline
         }
     }
 
@@ -371,26 +289,9 @@ class VisualEngine {
 
     // MARK: - Render
 
-    private var renderCallCount = 0
-
     func render(in view: MTKView) {
-        renderCallCount += 1
-        if renderCallCount <= 5 {
-            print("🎨 render() called #\(renderCallCount)")
-            print("  - drawable: \(view.currentDrawable != nil)")
-            print("  - drawableSize: \(view.drawableSize)")
-            print("  - frame: \(view.frame)")
-            print("  - bounds: \(view.bounds)")
-            print("  - isHidden: \(view.isHidden)")
-            print("  - alphaValue: \(view.alphaValue)")
-        }
-
         guard let drawable = view.currentDrawable,
               let commandBuffer = commandQueue.makeCommandBuffer() else {
-            if renderCallCount <= 5 {
-                print("🎨 render() early exit - no drawable or command buffer")
-                print("  - currentDrawable: \(view.currentDrawable)")
-            }
             return
         }
 
@@ -399,47 +300,14 @@ class VisualEngine {
         uniforms.resolution = simd_float2(Float(viewportSize.width), Float(viewportSize.height))
         createRenderTargets(size: viewportSize)
 
-        if renderCallCount <= 5 {
-            print("  - renderTarget0: \(renderTarget0 != nil ? "\(renderTarget0!.width)x\(renderTarget0!.height)" : "nil")")
-            print("  - renderTarget1: \(renderTarget1 != nil ? "\(renderTarget1!.width)x\(renderTarget1!.height)" : "nil")")
-            print("  - pipelines: baseLayer=\(pipelineStates["baseLayer"] != nil), textureComposite=\(pipelineStates["textureComposite"] != nil), glitch=\(pipelineStates["glitch"] != nil), postProcess=\(pipelineStates["postProcess"] != nil)")
-        }
-
         // Multi-pass rendering pipeline:
         // Pass 1: Base Layer (procedural patterns) -> renderTarget0
-        // Pass 2: Texture Composite (blend inspiration textures) -> renderTarget1
+        // Pass 2: Texture Composite (blend with audio effects) -> renderTarget1
         // Pass 3: Glitch (apply glitch effects) -> renderTarget0
         // Pass 4: Post Process (final grading) -> drawable
 
-        // DEBUG: Simplified single-pass rendering directly to drawable
-        // This bypasses all intermediate render targets to test basic rendering
-        let debugSinglePass = false  // Set to false to test multi-pass pipeline
-        if debugSinglePass {
-            if let descriptor = view.currentRenderPassDescriptor,
-               let pipeline = pipelineStates["postProcess"] {
-                if renderCallCount <= 5 {
-                    print("  - DEBUG: Single-pass render directly to drawable")
-                }
-                guard let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
-                    print("  - DEBUG: Failed to create render command encoder!")
-                    return
-                }
-                encoder.setRenderPipelineState(pipeline)
-                var uniformsCopy = uniforms
-                encoder.setVertexBytes(&uniformsCopy, length: MemoryLayout<Uniforms>.stride, index: 0)
-                encoder.setFragmentBytes(&uniformsCopy, length: MemoryLayout<Uniforms>.stride, index: 0)
-                encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
-                encoder.endEncoding()
-
-                commandBuffer.present(drawable)
-                commandBuffer.commit()
-                return
-            }
-        }
-
         // === PASS 1: BASE LAYER ===
         if let baseTarget = renderTarget0 {
-            if renderCallCount <= 5 { print("  - Pass 1: BaseLayer -> renderTarget0") }
             renderPass(
                 commandBuffer: commandBuffer,
                 pipeline: pipelineStates["baseLayer"],
@@ -447,18 +315,10 @@ class VisualEngine {
                 inputTexture: nil,
                 additionalTextures: []
             )
-        } else if renderCallCount <= 5 {
-            print("  - Pass 1: SKIPPED - no renderTarget0!")
         }
 
-        // === PASS 2: WORKING COMPOSITE ===
-        // Using workingComposite from Common.metal (TextureComposite.metal has issues)
+        // === PASS 2: COMPOSITE ===
         if let compositeTarget = renderTarget1, let baseTarget = renderTarget0 {
-            if renderCallCount <= 5 {
-                print("  - Pass 2: workingComposite -> renderTarget1")
-                print("    - pipeline exists: \(pipelineStates["workingComposite"] != nil)")
-            }
-
             renderPass(
                 commandBuffer: commandBuffer,
                 pipeline: pipelineStates["workingComposite"],
@@ -466,16 +326,10 @@ class VisualEngine {
                 inputTexture: baseTarget,
                 additionalTextures: []
             )
-        } else if renderCallCount <= 5 {
-            print("  - Pass 2: SKIPPED - missing render targets!")
         }
 
         // === PASS 3: GLITCH ===
-        // Glitch reads from renderTarget1 (composite), writes to renderTarget0
         if let glitchTarget = renderTarget0, let compositeResult = renderTarget1 {
-            if renderCallCount <= 5 {
-                print("  - Pass 3: Glitch -> renderTarget0")
-            }
             renderPass(
                 commandBuffer: commandBuffer,
                 pipeline: pipelineStates["glitch"],
@@ -483,30 +337,19 @@ class VisualEngine {
                 inputTexture: compositeResult,
                 additionalTextures: []
             )
-        } else if renderCallCount <= 5 {
-            print("  - Pass 3: SKIPPED - missing render targets!")
         }
 
-        // === PASS 4: POST PROCESS (to drawable) ===
-        // PostProcess reads from renderTarget0 (glitch output), writes to screen
+        // === PASS 4: POST PROCESS ===
         if let descriptor = view.currentRenderPassDescriptor,
            let glitchResult = renderTarget0 {
-            if renderCallCount <= 5 {
-                print("  - Pass 4: PostProcess -> drawable")
-            }
             renderFinalPass(
                 commandBuffer: commandBuffer,
                 pipeline: pipelineStates["postProcess"],
                 descriptor: descriptor,
                 inputTexture: glitchResult
             )
-        } else if renderCallCount <= 5 {
-            print("  - Pass 4: SKIPPED - no descriptor or glitchResult!")
         }
 
-        if renderCallCount <= 5 {
-            print("  - Presenting drawable and committing command buffer")
-        }
         commandBuffer.present(drawable)
         commandBuffer.commit()
     }

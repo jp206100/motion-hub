@@ -53,10 +53,10 @@ struct MotionHubApp: App {
                 .keyboardShortcut("o", modifiers: .command)
             }
             CommandMenu("View") {
-                Button("Performance Mode") {
+                Button("Toggle Fullscreen") {
                     appState.isPerformanceMode.toggle()
                 }
-                .keyboardShortcut(.space, modifiers: .command)
+                .keyboardShortcut("f", modifiers: [.command, .shift])
             }
         }
     }

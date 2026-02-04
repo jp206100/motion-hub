@@ -54,13 +54,13 @@ struct PreviewPanel: View {
 
             Spacer()
 
-            // Performance mode button
+            // Fullscreen button
             Button(action: {
                 appState.isPerformanceMode = true
             }) {
                 HStack(spacing: 6) {
-                    Image(systemName: "play.display")
-                    Text("Performance Mode")
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    Text("Fullscreen")
                         .font(AppFonts.displayBold(size: 11))
                         .textCase(.uppercase)
                 }

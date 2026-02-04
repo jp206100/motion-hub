@@ -10,6 +10,10 @@
 
 using namespace metal;
 
+// Forward declarations for color space conversions
+float3 rgb2hsv(float3 c);
+float3 hsv2rgb(float3 c);
+
 // MARK: - Simple Test Fragment Shader (for debugging)
 // This shader has minimal dependencies to test if pipelines work
 fragment float4 simpleTestFragment(

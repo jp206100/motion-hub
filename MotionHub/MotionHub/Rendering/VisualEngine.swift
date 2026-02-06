@@ -122,13 +122,13 @@ class VisualEngine {
             pipelineStates["baseLayer"] = pipeline
         }
 
-        // Texture composite pipeline (inspiration pack blending with audio-reactive effects)
+        // Inspiration blend pipeline (inspiration pack textures blended with base layer)
         if let pipeline = createPipeline(
             library: library,
             vertexFunction: "vertexShader",
-            fragmentFunction: "textureCompositeFragment"
+            fragmentFunction: "inspirationBlendFragment"
         ) {
-            pipelineStates["textureComposite"] = pipeline
+            pipelineStates["inspirationBlend"] = pipeline
         }
 
         // Fallback composite pipeline (no inspiration textures)
@@ -359,26 +359,26 @@ class VisualEngine {
             )
         }
 
-        // === PASS 2: COMPOSITE (blend inspiration pack textures with base) ===
-        if uniforms.textureCount > 0, let compositePipeline = pipelineStates["textureComposite"] {
-            // Use full texture composite with inspiration pack textures
-            var allTextures: [MTLTexture] = [baseTarget]
-            // Bind up to 4 inspiration textures (slots 1-4)
-            for i in 0..<min(4, inspirationTextures.count) {
-                allTextures.append(inspirationTextures[i])
+        // === PASS 2: COMPOSITE (blend base layer with audio effects + inspiration textures) ===
+        if uniforms.textureCount > 0, let blendPipeline = pipelineStates["inspirationBlend"] {
+            if frameNumber == 1 || frameNumber % 300 == 0 {
+                print("🎨 Pass 2: inspirationBlend with \(uniforms.textureCount) textures, \(inspirationTextures.count) loaded")
             }
-            // Fill remaining slots with placeholder (with safety limit to prevent infinite loop)
+            var additionalTextures: [MTLTexture] = []
+            for i in 0..<min(4, inspirationTextures.count) {
+                additionalTextures.append(inspirationTextures[i])
+            }
             if let placeholder = placeholderTexture {
-                while allTextures.count < 5 {
-                    allTextures.append(placeholder)
+                while additionalTextures.count < 4 {
+                    additionalTextures.append(placeholder)
                 }
             }
-
-            renderPassWithMultipleTextures(
+            renderPass(
                 commandBuffer: commandBuffer,
-                pipeline: compositePipeline,
+                pipeline: blendPipeline,
                 targetTexture: compositeTarget,
-                textures: allTextures
+                inputTexture: baseTarget,
+                additionalTextures: additionalTextures
             )
         } else {
             // Fallback: no inspiration textures, use simple composite

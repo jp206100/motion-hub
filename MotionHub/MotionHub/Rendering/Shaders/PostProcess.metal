@@ -15,7 +15,11 @@ using namespace metal;
 float hash(float2 p);
 float3 rgb2hsv(float3 c);
 float3 hsv2rgb(float3 c);
-float3 blendScreen(float3 base, float3 blend);
+
+// Local blend screen (avoids cross-file linkage issues in Metal)
+static float3 postBlendScreen(float3 base, float3 blend) {
+    return 1.0 - (1.0 - base) * (1.0 - blend);
+}
 
 fragment float4 postProcessFragment(
     VertexOut in [[stage_in]],
@@ -70,7 +74,7 @@ fragment float4 postProcessFragment(
         // Highlights tinted toward brightest palette color
         float3 highlightTint = pal.colors[min(pal.colorCount - 1, 5)].rgb;
         float highlightMask = smoothstep(0.6, 1.0, luma);
-        color.rgb = mix(color.rgb, blendScreen(color.rgb, highlightTint), highlightMask * u.intensity * 0.12);
+        color.rgb = mix(color.rgb, postBlendScreen(color.rgb, highlightTint), highlightMask * u.intensity * 0.12);
     } else {
         // Default subtle desaturation for industrial aesthetic
         float luma = dot(color.rgb, float3(0.299, 0.587, 0.114));

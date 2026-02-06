@@ -46,6 +46,7 @@ class VisualEngine {
 
     // MARK: - Debug
     private var frameNumber: Int = 0
+    private var hasLoggedTextureComposite = false
 
     // MARK: - Glitch Timing
     private var lastGlitchTime: Float = 0
@@ -259,6 +260,7 @@ class VisualEngine {
         inspirationTextures.removeAll()
         textureLoader?.clearAll()
         uniforms.textureCount = 0
+        hasLoggedTextureComposite = false
         // Reset to default palette (don't set to nil - shader requires buffer)
         paletteBuffer = createDefaultPaletteBuffer()
     }
@@ -324,14 +326,13 @@ class VisualEngine {
         frameNumber += 1
         let isDebugFrame = frameNumber <= 5
 
-        // GPU error detection
-        if frameNumber <= 3 {
-            commandBuffer.addCompletedHandler { buffer in
-                if buffer.status == .error {
-                    print("🎨 GPU ERROR on frame \(self.frameNumber): \(buffer.error?.localizedDescription ?? "unknown")")
-                } else if self.frameNumber <= 3 {
-                    print("🎨 Frame \(self.frameNumber) GPU completed OK")
-                }
+        // GPU error detection - always check for errors, log successes only for first 3 frames
+        let capturedFrame = frameNumber
+        commandBuffer.addCompletedHandler { buffer in
+            if buffer.status == .error {
+                print("🎨 GPU ERROR on frame \(capturedFrame): \(buffer.error?.localizedDescription ?? "unknown")")
+            } else if capturedFrame <= 3 {
+                print("🎨 Frame \(capturedFrame) GPU completed OK")
             }
         }
 
@@ -381,6 +382,16 @@ class VisualEngine {
                     allTextures.append(placeholder)
                 }
             }
+
+            // One-time log when first using textureComposite path
+            if !hasLoggedTextureComposite {
+                hasLoggedTextureComposite = true
+                print("🎨 FIRST textureComposite render: \(allTextures.count) textures, textureCount=\(uniforms.textureCount)")
+                for (i, tex) in allTextures.enumerated() {
+                    print("🎨   texture[\(i)]: \(tex.width)x\(tex.height) format=\(tex.pixelFormat.rawValue) storage=\(tex.storageMode.rawValue)")
+                }
+            }
+
             if isDebugFrame { print("🎨 Pass 2 (textureComposite) with \(allTextures.count) textures") }
             renderPassWithMultipleTextures(
                 commandBuffer: commandBuffer,

@@ -170,6 +170,9 @@ struct MetalPreviewView: NSViewRepresentable {
         private var audioLevelUpdateTime: CFAbsoluteTime = CFAbsoluteTimeGetCurrent()
         private var hasLoggedFirstFrame = false
 
+        // Track loaded pack to detect changes
+        private var loadedPackID: UUID?
+
         init(appState: AppState, audioAnalyzer: AudioAnalyzer) {
             self.appState = appState
             self.audioAnalyzer = audioAnalyzer
@@ -180,6 +183,12 @@ struct MetalPreviewView: NSViewRepresentable {
             self.visualEngine = VisualEngine(device: device)
             self.visualEngine?.appState = appState
             print("🎨 VisualEngine setup complete: \(self.visualEngine != nil ? "success" : "failed")")
+
+            // Load inspiration pack if one is already set
+            if let pack = appState.currentPack {
+                visualEngine?.loadInspirationPack(pack, artifacts: appState.extractedArtifacts)
+                loadedPackID = pack.id
+            }
         }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
@@ -217,6 +226,19 @@ struct MetalPreviewView: NSViewRepresentable {
                 DispatchQueue.main.async { [weak self] in
                     self?.appState.audioLevels = audioLevels
                 }
+            }
+
+            // Detect inspiration pack changes and load textures into visual engine
+            let currentPackID = appState.currentPack?.id
+            if currentPackID != loadedPackID {
+                if let pack = appState.currentPack {
+                    print("🎨 Inspiration pack changed - loading textures for '\(pack.name)'")
+                    visualEngine?.loadInspirationPack(pack, artifacts: appState.extractedArtifacts)
+                } else {
+                    print("🎨 Inspiration pack cleared")
+                    visualEngine?.clearTextures()
+                }
+                loadedPackID = currentPackID
             }
 
             // Update and render using VisualEngine

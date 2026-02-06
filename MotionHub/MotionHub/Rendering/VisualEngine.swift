@@ -119,7 +119,16 @@ class VisualEngine {
             pipelineStates["baseLayer"] = pipeline
         }
 
-        // Working composite pipeline (audio-reactive effects)
+        // Texture composite pipeline (inspiration pack blending with audio-reactive effects)
+        if let pipeline = createPipeline(
+            library: library,
+            vertexFunction: "vertexShader",
+            fragmentFunction: "textureCompositeFragment"
+        ) {
+            pipelineStates["textureComposite"] = pipeline
+        }
+
+        // Fallback composite pipeline (no inspiration textures)
         if let pipeline = createPipeline(
             library: library,
             vertexFunction: "vertexShader",
@@ -224,8 +233,11 @@ class VisualEngine {
             await MainActor.run {
                 self.inspirationTextures = textures
                 self.uniforms.textureCount = Int32(min(textures.count, 4))
-                self.paletteBuffer = loader.createPaletteBuffer()
-                print("🎨 Loaded \(textures.count) textures from pack")
+                // Only update palette buffer if pack has extracted colors; otherwise keep default
+                if let newPalette = loader.createPaletteBuffer() {
+                    self.paletteBuffer = newPalette
+                }
+                print("🎨 Loaded \(textures.count) textures from pack '\(pack.name)'")
             }
         }
     }
@@ -319,15 +331,37 @@ class VisualEngine {
             )
         }
 
-        // === PASS 2: COMPOSITE ===
+        // === PASS 2: COMPOSITE (blend inspiration pack textures with base) ===
         if let compositeTarget = renderTarget1, let baseTarget = renderTarget0 {
-            renderPass(
-                commandBuffer: commandBuffer,
-                pipeline: pipelineStates["workingComposite"],
-                targetTexture: compositeTarget,
-                inputTexture: baseTarget,
-                additionalTextures: []
-            )
+            if uniforms.textureCount > 0, let compositePipeline = pipelineStates["textureComposite"] {
+                // Use full texture composite with inspiration pack textures
+                var allTextures: [MTLTexture] = [baseTarget]
+                // Bind up to 4 inspiration textures (slots 1-4)
+                for i in 0..<min(4, inspirationTextures.count) {
+                    allTextures.append(inspirationTextures[i])
+                }
+                // Fill remaining slots with placeholder
+                while allTextures.count < 5 {
+                    if let placeholder = placeholderTexture {
+                        allTextures.append(placeholder)
+                    }
+                }
+                renderPassWithMultipleTextures(
+                    commandBuffer: commandBuffer,
+                    pipeline: compositePipeline,
+                    targetTexture: compositeTarget,
+                    textures: allTextures
+                )
+            } else {
+                // Fallback: no inspiration textures, use simple composite
+                renderPass(
+                    commandBuffer: commandBuffer,
+                    pipeline: pipelineStates["workingComposite"],
+                    targetTexture: compositeTarget,
+                    inputTexture: baseTarget,
+                    additionalTextures: []
+                )
+            }
         }
 
         // === PASS 3: GLITCH ===
@@ -456,6 +490,11 @@ class VisualEngine {
         var uniformsCopy = uniforms
         encoder.setVertexBytes(&uniformsCopy, length: MemoryLayout<Uniforms>.stride, index: 0)
         encoder.setFragmentBytes(&uniformsCopy, length: MemoryLayout<Uniforms>.stride, index: 0)
+
+        // Bind palette buffer for palette-based color grading in post-process
+        if let palette = paletteBuffer {
+            encoder.setFragmentBuffer(palette, offset: 0, index: 1)
+        }
 
         encoder.setFragmentTexture(inputTexture, index: 0)
 

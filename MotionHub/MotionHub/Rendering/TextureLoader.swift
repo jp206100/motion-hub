@@ -39,25 +39,50 @@ class TextureLoader {
     func loadFromPack(_ pack: InspirationPack, artifacts: ExtractedArtifacts?) async -> [MTLTexture] {
         var textures: [MTLTexture] = []
 
-        // Load original media files first
+        // Load original media files - prioritize images first for clear brand presence,
+        // then extract multiple frames from videos for dynamic cycling
         let mediaDirectory = PackManager.packsDirectory
             .appendingPathComponent(pack.id.uuidString)
             .appendingPathComponent("media")
 
-        for mediaFile in pack.mediaFiles {
-            let filePath = mediaDirectory.appendingPathComponent(mediaFile.filename)
+        // Separate media types for priority loading
+        let imageFiles = pack.mediaFiles.filter { $0.type == .image }
+        let videoFiles = pack.mediaFiles.filter { $0.type == .video }
+        let gifFiles = pack.mediaFiles.filter { $0.type == .gif }
 
+        // Load images first (highest priority - brand assets, photos, logos)
+        for mediaFile in imageFiles {
+            if textures.count >= maxLoadedTextures { break }
+            let filePath = mediaDirectory.appendingPathComponent(mediaFile.filename)
             if let texture = await loadTexture(from: filePath) {
                 textures.append(texture)
                 loadedTextures[mediaFile.id.uuidString] = texture
-
-                if textures.count >= maxLoadedTextures {
-                    break
-                }
             }
         }
 
-        // Load extracted textures from artifacts
+        // Load multiple frames from each video (for dynamic texture cycling)
+        for mediaFile in videoFiles {
+            if textures.count >= maxLoadedTextures { break }
+            let filePath = mediaDirectory.appendingPathComponent(mediaFile.filename)
+            let frames = await extractMultipleVideoFrames(from: filePath, frameCount: 4)
+            for (i, frame) in frames.enumerated() {
+                if textures.count >= maxLoadedTextures { break }
+                textures.append(frame)
+                loadedTextures["\(mediaFile.id.uuidString)_frame\(i)"] = frame
+            }
+        }
+
+        // Load GIF files (treat as images - first frame)
+        for mediaFile in gifFiles {
+            if textures.count >= maxLoadedTextures { break }
+            let filePath = mediaDirectory.appendingPathComponent(mediaFile.filename)
+            if let texture = await loadTexture(from: filePath) {
+                textures.append(texture)
+                loadedTextures[mediaFile.id.uuidString] = texture
+            }
+        }
+
+        // Load extracted texture artifacts (edge maps, posterized, etc.)
         if let artifacts = artifacts {
             let artifactsDirectory = PackManager.packsDirectory
                 .appendingPathComponent(pack.id.uuidString)
@@ -65,15 +90,41 @@ class TextureLoader {
                 .appendingPathComponent("textures")
 
             for textureArtifact in artifacts.artifacts.textures {
-                if textures.count >= maxLoadedTextures {
-                    break
-                }
-
+                if textures.count >= maxLoadedTextures { break }
                 let texturePath = artifactsDirectory.appendingPathComponent(textureArtifact.filename)
-
                 if let texture = await loadTexture(from: texturePath) {
                     textures.append(texture)
                     loadedTextures[textureArtifact.id.uuidString] = texture
+                }
+            }
+
+            // Load ghosted images (semi-transparent brand overlays)
+            let ghostedDirectory = PackManager.packsDirectory
+                .appendingPathComponent(pack.id.uuidString)
+                .appendingPathComponent("artifacts")
+                .appendingPathComponent("textures")
+
+            for ghosted in artifacts.artifacts.ghostedImages {
+                if textures.count >= maxLoadedTextures { break }
+                let ghostedPath = ghostedDirectory.appendingPathComponent(ghosted.filename)
+                if let texture = await loadTexture(from: ghostedPath) {
+                    textures.append(texture)
+                    loadedTextures[ghosted.id.uuidString] = texture
+                }
+            }
+
+            // Load motion pattern images from videos
+            let motionDirectory = PackManager.packsDirectory
+                .appendingPathComponent(pack.id.uuidString)
+                .appendingPathComponent("artifacts")
+                .appendingPathComponent("motion")
+
+            for motion in artifacts.artifacts.motionPatterns {
+                if textures.count >= maxLoadedTextures { break }
+                let motionPath = motionDirectory.appendingPathComponent(motion.filename)
+                if let texture = await loadTexture(from: motionPath) {
+                    textures.append(texture)
+                    loadedTextures[motion.id.uuidString] = texture
                 }
             }
 
@@ -85,6 +136,7 @@ class TextureLoader {
             }
         }
 
+        print("🎨 TextureLoader: loaded \(textures.count) textures (\(imageFiles.count) images, \(videoFiles.count) videos, \(gifFiles.count) gifs)")
         return textures
     }
 
@@ -201,6 +253,49 @@ class TextureLoader {
         )
 
         return texture
+    }
+
+    /// Extract multiple frames from a video for dynamic texture cycling
+    func extractMultipleVideoFrames(from url: URL, frameCount: Int = 4) async -> [MTLTexture] {
+        let asset = AVAsset(url: url)
+
+        let duration: CMTime
+        do {
+            duration = try await asset.load(.duration)
+        } catch {
+            print("Failed to get video duration for multi-frame: \(error)")
+            // Fall back to single frame
+            if let single = await extractVideoFrame(from: url) {
+                return [single]
+            }
+            return []
+        }
+
+        let totalSeconds = duration.seconds
+        guard totalSeconds > 0 else { return [] }
+
+        var textures: [MTLTexture] = []
+        let imageGenerator = AVAssetImageGenerator(asset: asset)
+        imageGenerator.appliesPreferredTrackTransform = true
+        imageGenerator.requestedTimeToleranceBefore = CMTime(seconds: 0.5, preferredTimescale: 600)
+        imageGenerator.requestedTimeToleranceAfter = CMTime(seconds: 0.5, preferredTimescale: 600)
+
+        // Extract frames at evenly spaced intervals through the video
+        for i in 0..<frameCount {
+            let fraction = Double(i + 1) / Double(frameCount + 1)
+            let time = CMTime(seconds: totalSeconds * fraction, preferredTimescale: 600)
+
+            do {
+                let (cgImage, _) = try await imageGenerator.image(at: time)
+                if let texture = createTexture(from: cgImage) {
+                    textures.append(texture)
+                }
+            } catch {
+                print("Failed to extract frame \(i) from video: \(error)")
+            }
+        }
+
+        return textures
     }
 
     /// Create a placeholder texture with a solid color

@@ -2,9 +2,9 @@
 //  TextureComposite.metal
 //  Motion Hub
 //
-//  Blends inspiration pack textures with procedural visuals
-//  Creates unique looks based on uploaded media - photos, videos, logos
-//  The artist's brand assets directly shape the visual output
+//  Blends ONE inspiration pack texture with procedural base visuals
+//  Uses only 2 texture parameters (matching the proven working pattern)
+//  Swift-side cycles through inspiration textures over time for variety
 //
 
 #include <metal_stdlib>
@@ -30,20 +30,15 @@ static float2 tcKenBurns(float2 uv, float time, float seed) {
     return center + (uv - 0.5) * zoom;
 }
 
-// NEW pipeline function - uses fresh function name to avoid any Metal caching/compilation issues
-// This is called via the "inspirationBlend" pipeline using the proven renderPass() method
+// Inspiration blend: base texture + ONE inspiration texture
+// Only 2 texture slots — avoids the multi-texture pipeline issue
 fragment float4 inspirationBlendFragment(
     VertexOut in [[stage_in]],
     constant Uniforms& u [[buffer(0)]],
-    constant ColorPalette* palettes [[buffer(1)]],
     texture2d<float> baseTexture [[texture(0)]],
-    texture2d<float> inspirationTex0 [[texture(1)]],
-    texture2d<float> inspirationTex1 [[texture(2)]],
-    texture2d<float> inspirationTex2 [[texture(3)]],
-    texture2d<float> inspirationTex3 [[texture(4)]]
+    texture2d<float> inspirationTex [[texture(1)]]
 ) {
     constexpr sampler clampSampler(mag_filter::linear, min_filter::linear, address::clamp_to_edge);
-    constexpr sampler texSampler(mag_filter::linear, min_filter::linear, address::repeat);
 
     float2 uv = in.texCoord;
     float t = u.time * u.speed * 0.2;
@@ -53,27 +48,16 @@ fragment float4 inspirationBlendFragment(
     float4 baseColor = baseTexture.sample(clampSampler, uv);
     float3 result = baseColor.rgb;
 
-    // Texture 0: Primary brand layer with Ken Burns motion
-    if (u.textureCount >= 1) {
-        float2 texUV = tcKenBurns(uv, t, 0.0);
-        float4 tex = inspirationTex0.sample(clampSampler, texUV);
-        result = mix(result, tex.rgb, 0.3);
-    }
+    // Sample inspiration texture with Ken Burns pan/zoom
+    float2 texUV = tcKenBurns(uv, t, 0.0);
+    float4 tex = inspirationTex.sample(clampSampler, texUV);
 
-    // Texture 1: Secondary layer with gentle drift
-    if (u.textureCount >= 2) {
-        float2 texUV = uv + float2(sin(t * 0.3) * 0.05, cos(t * 0.2) * 0.05);
-        float4 tex = inspirationTex1.sample(clampSampler, texUV);
-        float3 screened = tcBlendScreen(result, tex.rgb);
-        result = mix(result, screened, 0.15);
-    }
+    // Blend: mix 40% inspiration into base
+    result = mix(result, tex.rgb, 0.4 * u.intensity);
 
-    // Texture 2: Third layer with slow scroll
-    if (u.textureCount >= 3) {
-        float2 texUV = uv + float2(t * 0.02, -t * 0.01);
-        float4 tex = inspirationTex2.sample(texSampler, texUV);
-        result = mix(result, tex.rgb, 0.1);
-    }
+    // Screen blend for brightness lift from inspiration
+    float3 screened = tcBlendScreen(result, tex.rgb);
+    result = mix(result, screened, 0.15 * u.intensity);
 
     // Audio reactivity
     float bassPulseAmt = 1.0 + u.audioBass * pulse * 0.8;

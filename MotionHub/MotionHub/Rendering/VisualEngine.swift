@@ -250,6 +250,9 @@ class VisualEngine {
                     self.paletteBuffer = newPalette
                 }
                 print("🎨 Loaded \(textures.count) textures from pack '\(pack.name)'")
+                for (i, tex) in textures.prefix(4).enumerated() {
+                    print("🎨   tex[\(i)]: \(tex.width)x\(tex.height) fmt=\(tex.pixelFormat.rawValue) storage=\(tex.storageMode.rawValue) usage=\(tex.usage.rawValue)")
+                }
             }
         }
     }
@@ -360,25 +363,21 @@ class VisualEngine {
         }
 
         // === PASS 2: COMPOSITE (blend base layer with audio effects + inspiration textures) ===
-        if uniforms.textureCount > 0, let blendPipeline = pipelineStates["inspirationBlend"] {
+        if uniforms.textureCount > 0, let blendPipeline = pipelineStates["inspirationBlend"],
+           !inspirationTextures.isEmpty {
+            // Cycle through inspiration textures every 5 seconds for variety
+            let texIndex = Int(uniforms.time / 5.0) % inspirationTextures.count
+            let chosenTex = inspirationTextures[texIndex]
+
             if frameNumber == 1 || frameNumber % 300 == 0 {
-                print("🎨 Pass 2: inspirationBlend with \(uniforms.textureCount) textures, \(inspirationTextures.count) loaded")
-            }
-            var additionalTextures: [MTLTexture] = []
-            for i in 0..<min(4, inspirationTextures.count) {
-                additionalTextures.append(inspirationTextures[i])
-            }
-            if let placeholder = placeholderTexture {
-                while additionalTextures.count < 4 {
-                    additionalTextures.append(placeholder)
-                }
+                print("🎨 Pass 2: inspirationBlend tex[\(texIndex)/\(inspirationTextures.count)] fmt=\(chosenTex.pixelFormat.rawValue) \(chosenTex.width)x\(chosenTex.height) storage=\(chosenTex.storageMode.rawValue)")
             }
             renderPass(
                 commandBuffer: commandBuffer,
                 pipeline: blendPipeline,
                 targetTexture: compositeTarget,
                 inputTexture: baseTarget,
-                additionalTextures: additionalTextures
+                additionalTextures: [chosenTex]
             )
         } else {
             // Fallback: no inspiration textures, use simple composite

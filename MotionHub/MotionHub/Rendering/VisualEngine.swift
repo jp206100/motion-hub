@@ -44,9 +44,8 @@ class VisualEngine {
     private var previousFrameTexture: MTLTexture?
     private let transitionDuration: Float = 1.5
 
-    // MARK: - Debug
+    // MARK: - Frame Tracking
     private var frameNumber: Int = 0
-    private var hasLoggedTextureComposite = false
 
     // MARK: - Glitch Timing
     private var lastGlitchTime: Float = 0
@@ -260,7 +259,6 @@ class VisualEngine {
         inspirationTextures.removeAll()
         textureLoader?.clearAll()
         uniforms.textureCount = 0
-        hasLoggedTextureComposite = false
         // Reset to default palette (don't set to nil - shader requires buffer)
         paletteBuffer = createDefaultPaletteBuffer()
     }
@@ -324,15 +322,12 @@ class VisualEngine {
         }
 
         frameNumber += 1
-        let isDebugFrame = frameNumber <= 5
 
-        // GPU error detection - always check for errors, log successes only for first 3 frames
+        // GPU error detection
         let capturedFrame = frameNumber
         commandBuffer.addCompletedHandler { buffer in
             if buffer.status == .error {
                 print("🎨 GPU ERROR on frame \(capturedFrame): \(buffer.error?.localizedDescription ?? "unknown")")
-            } else if capturedFrame <= 3 {
-                print("🎨 Frame \(capturedFrame) GPU completed OK")
             }
         }
 
@@ -342,7 +337,6 @@ class VisualEngine {
         createRenderTargets(size: viewportSize)
 
         guard let baseTarget = renderTarget0, let compositeTarget = renderTarget1 else {
-            if isDebugFrame { print("🎨 ERROR: Render targets nil on frame \(frameNumber)") }
             commandBuffer.present(drawable)
             commandBuffer.commit()
             return
@@ -363,9 +357,6 @@ class VisualEngine {
                 inputTexture: nil,
                 additionalTextures: []
             )
-            if isDebugFrame { print("🎨 Pass 1 (baseLayer) encoded") }
-        } else if isDebugFrame {
-            print("🎨 ERROR: baseLayer pipeline is nil!")
         }
 
         // === PASS 2: COMPOSITE (blend inspiration pack textures with base) ===
@@ -383,16 +374,6 @@ class VisualEngine {
                 }
             }
 
-            // One-time log when first using textureComposite path
-            if !hasLoggedTextureComposite {
-                hasLoggedTextureComposite = true
-                print("🎨 FIRST textureComposite render: \(allTextures.count) textures, textureCount=\(uniforms.textureCount)")
-                for (i, tex) in allTextures.enumerated() {
-                    print("🎨   texture[\(i)]: \(tex.width)x\(tex.height) format=\(tex.pixelFormat.rawValue) storage=\(tex.storageMode.rawValue)")
-                }
-            }
-
-            if isDebugFrame { print("🎨 Pass 2 (textureComposite) with \(allTextures.count) textures") }
             renderPassWithMultipleTextures(
                 commandBuffer: commandBuffer,
                 pipeline: compositePipeline,
@@ -408,7 +389,6 @@ class VisualEngine {
                 inputTexture: baseTarget,
                 additionalTextures: []
             )
-            if isDebugFrame { print("🎨 Pass 2 (workingComposite) encoded") }
         }
 
         // === PASS 3: GLITCH ===
@@ -420,9 +400,6 @@ class VisualEngine {
                 inputTexture: compositeTarget,
                 additionalTextures: []
             )
-            if isDebugFrame { print("🎨 Pass 3 (glitch) encoded") }
-        } else if isDebugFrame {
-            print("🎨 ERROR: glitch pipeline is nil!")
         }
 
         // === PASS 4: POST PROCESS ===
@@ -433,9 +410,6 @@ class VisualEngine {
                 descriptor: descriptor,
                 inputTexture: baseTarget
             )
-            if isDebugFrame { print("🎨 Pass 4 (postProcess) encoded") }
-        } else if isDebugFrame {
-            print("🎨 ERROR: currentRenderPassDescriptor is nil!")
         }
 
         commandBuffer.present(drawable)

@@ -44,6 +44,9 @@ class VisualEngine {
     private var previousFrameTexture: MTLTexture?
     private let transitionDuration: Float = 1.5
 
+    // MARK: - Debug
+    private var frameNumber: Int = 0
+
     // MARK: - Glitch Timing
     private var lastGlitchTime: Float = 0
     private var glitchHoldTime: Float = 0
@@ -106,7 +109,7 @@ class VisualEngine {
 
     private func setupPipelines() {
         guard let library = device.makeDefaultLibrary() else {
-            print("Failed to create Metal library")
+            print("🎨 ERROR: Failed to create Metal library")
             return
         }
 
@@ -154,6 +157,15 @@ class VisualEngine {
         ) {
             pipelineStates["postProcess"] = pipeline
         }
+
+        // Log pipeline creation results
+        let required = ["baseLayer", "workingComposite", "glitch", "postProcess"]
+        for name in required {
+            if pipelineStates[name] == nil {
+                print("🎨 ERROR: Pipeline '\(name)' failed to create!")
+            }
+        }
+        print("🎨 Pipelines created: \(pipelineStates.keys.sorted().joined(separator: ", "))")
     }
 
     private func createPipeline(
@@ -309,10 +321,31 @@ class VisualEngine {
             return
         }
 
+        frameNumber += 1
+        let isDebugFrame = frameNumber <= 5
+
+        // GPU error detection
+        if frameNumber <= 3 {
+            commandBuffer.addCompletedHandler { buffer in
+                if buffer.status == .error {
+                    print("🎨 GPU ERROR on frame \(self.frameNumber): \(buffer.error?.localizedDescription ?? "unknown")")
+                } else if self.frameNumber <= 3 {
+                    print("🎨 Frame \(self.frameNumber) GPU completed OK")
+                }
+            }
+        }
+
         // Update resolution and create render targets
         let viewportSize = view.drawableSize
         uniforms.resolution = simd_float2(Float(viewportSize.width), Float(viewportSize.height))
         createRenderTargets(size: viewportSize)
+
+        guard let baseTarget = renderTarget0, let compositeTarget = renderTarget1 else {
+            if isDebugFrame { print("🎨 ERROR: Render targets nil on frame \(frameNumber)") }
+            commandBuffer.present(drawable)
+            commandBuffer.commit()
+            return
+        }
 
         // Multi-pass rendering pipeline:
         // Pass 1: Base Layer (procedural patterns) -> renderTarget0
@@ -321,69 +354,77 @@ class VisualEngine {
         // Pass 4: Post Process (final grading) -> drawable
 
         // === PASS 1: BASE LAYER ===
-        if let baseTarget = renderTarget0 {
+        if let pipeline = pipelineStates["baseLayer"] {
             renderPass(
                 commandBuffer: commandBuffer,
-                pipeline: pipelineStates["baseLayer"],
+                pipeline: pipeline,
                 targetTexture: baseTarget,
                 inputTexture: nil,
                 additionalTextures: []
             )
+            if isDebugFrame { print("🎨 Pass 1 (baseLayer) encoded") }
+        } else if isDebugFrame {
+            print("🎨 ERROR: baseLayer pipeline is nil!")
         }
 
         // === PASS 2: COMPOSITE (blend inspiration pack textures with base) ===
-        if let compositeTarget = renderTarget1, let baseTarget = renderTarget0 {
-            if uniforms.textureCount > 0, let compositePipeline = pipelineStates["textureComposite"] {
-                // Use full texture composite with inspiration pack textures
-                var allTextures: [MTLTexture] = [baseTarget]
-                // Bind up to 4 inspiration textures (slots 1-4)
-                for i in 0..<min(4, inspirationTextures.count) {
-                    allTextures.append(inspirationTextures[i])
-                }
-                // Fill remaining slots with placeholder
-                while allTextures.count < 5 {
-                    if let placeholder = placeholderTexture {
-                        allTextures.append(placeholder)
-                    }
-                }
-                renderPassWithMultipleTextures(
-                    commandBuffer: commandBuffer,
-                    pipeline: compositePipeline,
-                    targetTexture: compositeTarget,
-                    textures: allTextures
-                )
-            } else {
-                // Fallback: no inspiration textures, use simple composite
-                renderPass(
-                    commandBuffer: commandBuffer,
-                    pipeline: pipelineStates["workingComposite"],
-                    targetTexture: compositeTarget,
-                    inputTexture: baseTarget,
-                    additionalTextures: []
-                )
+        if uniforms.textureCount > 0, let compositePipeline = pipelineStates["textureComposite"] {
+            // Use full texture composite with inspiration pack textures
+            var allTextures: [MTLTexture] = [baseTarget]
+            // Bind up to 4 inspiration textures (slots 1-4)
+            for i in 0..<min(4, inspirationTextures.count) {
+                allTextures.append(inspirationTextures[i])
             }
+            // Fill remaining slots with placeholder (with safety limit to prevent infinite loop)
+            if let placeholder = placeholderTexture {
+                while allTextures.count < 5 {
+                    allTextures.append(placeholder)
+                }
+            }
+            if isDebugFrame { print("🎨 Pass 2 (textureComposite) with \(allTextures.count) textures") }
+            renderPassWithMultipleTextures(
+                commandBuffer: commandBuffer,
+                pipeline: compositePipeline,
+                targetTexture: compositeTarget,
+                textures: allTextures
+            )
+        } else {
+            // Fallback: no inspiration textures, use simple composite
+            renderPass(
+                commandBuffer: commandBuffer,
+                pipeline: pipelineStates["workingComposite"],
+                targetTexture: compositeTarget,
+                inputTexture: baseTarget,
+                additionalTextures: []
+            )
+            if isDebugFrame { print("🎨 Pass 2 (workingComposite) encoded") }
         }
 
         // === PASS 3: GLITCH ===
-        if let glitchTarget = renderTarget0, let compositeResult = renderTarget1 {
+        if let pipeline = pipelineStates["glitch"] {
             renderPass(
                 commandBuffer: commandBuffer,
-                pipeline: pipelineStates["glitch"],
-                targetTexture: glitchTarget,
-                inputTexture: compositeResult,
+                pipeline: pipeline,
+                targetTexture: baseTarget,
+                inputTexture: compositeTarget,
                 additionalTextures: []
             )
+            if isDebugFrame { print("🎨 Pass 3 (glitch) encoded") }
+        } else if isDebugFrame {
+            print("🎨 ERROR: glitch pipeline is nil!")
         }
 
         // === PASS 4: POST PROCESS ===
-        if let descriptor = view.currentRenderPassDescriptor,
-           let glitchResult = renderTarget0 {
+        if let descriptor = view.currentRenderPassDescriptor {
             renderFinalPass(
                 commandBuffer: commandBuffer,
                 pipeline: pipelineStates["postProcess"],
                 descriptor: descriptor,
-                inputTexture: glitchResult
+                inputTexture: baseTarget
             )
+            if isDebugFrame { print("🎨 Pass 4 (postProcess) encoded") }
+        } else if isDebugFrame {
+            print("🎨 ERROR: currentRenderPassDescriptor is nil!")
         }
 
         commandBuffer.present(drawable)

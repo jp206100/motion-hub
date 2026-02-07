@@ -173,15 +173,24 @@ class VisualEngine {
         vertexFunction: String,
         fragmentFunction: String
     ) -> MTLRenderPipelineState? {
+        guard let vertFunc = library.makeFunction(name: vertexFunction) else {
+            print("🎨 ERROR: Vertex function '\(vertexFunction)' not found in Metal library")
+            return nil
+        }
+        guard let fragFunc = library.makeFunction(name: fragmentFunction) else {
+            print("🎨 ERROR: Fragment function '\(fragmentFunction)' not found in Metal library")
+            return nil
+        }
+
         let descriptor = MTLRenderPipelineDescriptor()
-        descriptor.vertexFunction = library.makeFunction(name: vertexFunction)
-        descriptor.fragmentFunction = library.makeFunction(name: fragmentFunction)
+        descriptor.vertexFunction = vertFunc
+        descriptor.fragmentFunction = fragFunc
         descriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
 
         do {
             return try device.makeRenderPipelineState(descriptor: descriptor)
         } catch {
-            print("Failed to create pipeline: \(error)")
+            print("🎨 ERROR: Failed to create pipeline for '\(fragmentFunction)': \(error)")
             return nil
         }
     }

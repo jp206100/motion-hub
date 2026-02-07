@@ -80,11 +80,6 @@ fragment float4 workingCompositeFragment(
 // slit-scan ribbons, luminance masking, and beat-triggered reveals
 // Must live in Common.metal because TextureComposite.metal is not in the Xcode build target
 
-// Screen blend - always brightens or maintains brightness
-static float3 tcBlendScreen(float3 base, float3 blend) {
-    return 1.0 - (1.0 - base) * (1.0 - blend);
-}
-
 // Ken Burns style slow pan/zoom for brief recognizable reveals
 static float2 tcKenBurns(float2 uv, float time, float seed) {
     float panX = sin(time * 0.15 + seed * 3.14) * 0.15;
@@ -155,7 +150,6 @@ fragment float4 inspirationBlendFragment(
     // =====================================================
     float2 edgeUV = uv + float2(sin(t * 0.15) * 0.1, cos(t * 0.1) * 0.08);
     float eps = 0.004;
-    float lumC = tcLuma(inspirationTex.sample(clampSampler, edgeUV).rgb);
     float lumR = tcLuma(inspirationTex.sample(clampSampler, edgeUV + float2(eps, 0)).rgb);
     float lumL = tcLuma(inspirationTex.sample(clampSampler, edgeUV - float2(eps, 0)).rgb);
     float lumU = tcLuma(inspirationTex.sample(clampSampler, edgeUV + float2(0, eps)).rgb);

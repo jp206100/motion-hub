@@ -18,9 +18,8 @@ Built for musicians performing with Ableton Live and Push 2.
 
 ### AI Preprocessing
 - **Color palette extraction** via K-means clustering
-- **Edge detection** and texture generation
-- **Motion pattern analysis** from video
-- **Ghosted image overlays** with configurable opacity
+- **6 abstract deconstruction techniques** — Edge detection, texture generation, gradient analysis, motion pattern extraction, ghosted overlays, and color field decomposition
+- **Inspiration-driven rendering** — Extracted artifacts directly influence the procedural visual output
 - Supports JPG, PNG, HEIC, MP4, MOV, and animated GIFs
 
 ### Live Control
@@ -46,7 +45,7 @@ Built for musicians performing with Ableton Live and Push 2.
 | macOS | 14.0 (Sonoma) or later |
 | Chip | Apple Silicon (M1 / M2 / M3) |
 | RAM | 8 GB |
-| Audio routing | BlackHole or similar loopback driver |
+| Audio routing | BlackHole or similar loopback driver (optional) |
 
 ### Development Prerequisites
 
@@ -60,22 +59,12 @@ Built for musicians performing with Ableton Live and Push 2.
 
 ### Installation
 
-```bash
-# Clone the repository
-git clone https://github.com/<your-username>/motion-hub.git
-cd motion-hub
+1. Go to [Releases](https://github.com/jp206100/motion-hub/releases) and download the latest `.dmg` file
+2. Open the DMG and drag **Motion Hub** into your Applications folder
+3. Launch Motion Hub — on first run, macOS may ask you to confirm since it's from an identified developer
+4. Grant microphone access when prompted (required for audio-reactive visuals)
 
-# Set up the Python preprocessing environment
-cd preprocessing
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cd ..
-
-# Open the Xcode project and build
-open MotionHub/MotionHub.xcodeproj
-# Press ⌘R to build and run
-```
+To build from source instead, see [SETUP.md](SETUP.md).
 
 ### Audio Setup (BlackHole)
 
@@ -147,20 +136,21 @@ Address format: `/motionhub/<parameter>` (e.g., `/motionhub/intensity`, `/motion
 
 ```
 motion-hub/
+├── MotionHub.xcodeproj/                # Xcode project
 ├── MotionHub/
 │   └── MotionHub/
-│       ├── App/                        # App entry point
+│       ├── App/                        # App entry point + font registration
 │       ├── Models/                     # AppState, InspirationPack data models
 │       ├── Views/                      # SwiftUI views
 │       │   ├── ContentView.swift       # Main 3-panel layout
-│       │   ├── InspirationPanel.swift  # Media browser (left)
+│       │   ├── InspirationPanel.swift  # Media browser (left, 10 slots)
 │       │   ├── PreviewPanel.swift      # Metal preview + stats (center)
 │       │   ├── ControlsPanel.swift     # Parameter knobs (right)
 │       │   ├── FullscreenView.swift    # Performance mode
 │       │   ├── Components/             # KnobView, ControlButton, MediaThumbView
 │       │   └── Modals/                 # Save/Load pack dialogs
 │       ├── Services/                   # AudioAnalyzer, MIDIHandler, OSCHandler,
-│       │                               # PackManager, PreprocessingManager
+│       │                               # PackManager, PreprocessingManager, DebugLogger
 │       ├── Rendering/
 │       │   ├── VisualEngine.swift      # Core Metal rendering engine
 │       │   ├── TextureLoader.swift     # GPU texture loading
@@ -177,6 +167,7 @@ motion-hub/
 │   ├── requirements.txt                # NumPy, OpenCV, scikit-learn, Pillow
 │   └── utils/                          # Processing utilities
 ├── MaxForLive/                         # Max for Live devices (.amxd)
+├── Scripts/                            # Build and setup scripts
 ├── Tools/                              # OSC test utilities
 ├── SETUP.md                            # Detailed development setup guide
 └── README.md
@@ -258,6 +249,18 @@ Motion Hub uses a **multi-pass Metal rendering pipeline**:
 - Close other GPU-intensive applications
 - Reduce target FPS in settings
 - Use the internal display or a compatible external monitor
+
+---
+
+## Security
+
+Motion Hub is sandboxed and requests only the permissions it needs:
+
+- **Audio input** — for real-time FFT analysis
+- **User-selected file access** — for loading inspiration media
+- **Local network server** — OSC listener bound to `127.0.0.1` (localhost only)
+
+The app does not phone home, collect telemetry, or open any external network connections. Debug logs redact user home directory paths before export.
 
 ---
 

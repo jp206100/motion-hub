@@ -82,7 +82,7 @@ struct InspirationPanel: View {
     private var logoHeader: some View {
         Text("MotionHub")
             .font(AppFonts.logo(size: 22))
-            .foregroundColor(AppColors.accent)
+            .foregroundColor(.white)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 16)
             .padding(.vertical, 12)

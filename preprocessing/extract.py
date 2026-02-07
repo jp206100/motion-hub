@@ -154,8 +154,10 @@ class ArtifactExtractor:
         # Save frame as temp image and process
         temp_img = self.output_dir / "temp_frame.png"
         cv2.imwrite(str(temp_img), frame)
-        result = self.extract_colors(temp_img)
-        temp_img.unlink()
+        try:
+            result = self.extract_colors(temp_img)
+        finally:
+            temp_img.unlink(missing_ok=True)
 
         return result
 
@@ -226,8 +228,10 @@ class ArtifactExtractor:
         # Save frame and process
         temp_img = self.output_dir / "temp_video_frame.png"
         cv2.imwrite(str(temp_img), frame)
-        result = self.extract_textures(temp_img)
-        temp_img.unlink()
+        try:
+            result = self.extract_textures(temp_img)
+        finally:
+            temp_img.unlink(missing_ok=True)
 
         return result
 
@@ -364,7 +368,35 @@ def main():
 
     # Parse input files
     input_files = [Path(f.strip()) for f in args.input.split(',')]
-    output_dir = Path(args.output)
+    output_dir = Path(args.output).resolve()
+
+    # Validate that output directory is within Application Support or a reasonable location
+    # (reject writes to system directories)
+    _BLOCKED_PREFIXES = ['/etc', '/usr', '/bin', '/sbin', '/var', '/System', '/private/etc']
+    for blocked in _BLOCKED_PREFIXES:
+        if str(output_dir).startswith(blocked):
+            print(f"Error: output directory '{output_dir}' is in a restricted location", file=sys.stderr)
+            sys.exit(1)
+
+    # Validate input files: must exist and have a supported media extension
+    _ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.heic', '.tiff', '.bmp',
+                           '.gif', '.mp4', '.mov', '.m4v', '.avi', '.mkv'}
+    validated_files = []
+    for f in input_files:
+        resolved = f.resolve()
+        if not resolved.exists():
+            print(f"Warning: Skipping non-existent file: {f}", file=sys.stderr)
+            continue
+        if resolved.suffix.lower() not in _ALLOWED_EXTENSIONS:
+            print(f"Warning: Skipping unsupported file type: {f}", file=sys.stderr)
+            continue
+        validated_files.append(resolved)
+
+    if not validated_files:
+        print("Error: No valid input files to process", file=sys.stderr)
+        sys.exit(1)
+
+    input_files = validated_files
 
     # Create extractor and process
     extractor = ArtifactExtractor(output_dir)

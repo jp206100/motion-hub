@@ -26,6 +26,9 @@ class OSCHandler: ObservableObject {
             }
         }
     }
+    /// Bind address for the OSC server. Defaults to localhost (127.0.0.1) for security.
+    /// Set to "0.0.0.0" only if you need to accept OSC from other devices on the network.
+    @Published var bindAddress: String = "127.0.0.1"
     @Published var isConnected: Bool = false
     @Published var lastMessageTime: Date?
     @Published var messageCount: Int = 0
@@ -110,11 +113,11 @@ class OSCHandler: ObservableObject {
         var timeout = timeval(tv_sec: 1, tv_usec: 0)
         setsockopt(socketFD, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
 
-        // Bind to port
+        // Bind to port on the configured address (localhost by default for security)
         var addr = sockaddr_in()
         addr.sin_family = sa_family_t(AF_INET)
         addr.sin_port = port.bigEndian
-        addr.sin_addr.s_addr = INADDR_ANY.bigEndian
+        inet_pton(AF_INET, bindAddress, &addr.sin_addr)
 
         let bindResult = withUnsafePointer(to: &addr) { ptr in
             ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockaddrPtr in
@@ -132,7 +135,7 @@ class OSCHandler: ObservableObject {
             return
         }
 
-        print("🎛️ OSC server listening on port \(port)")
+        print("🎛️ OSC server listening on \(bindAddress):\(port)")
         DispatchQueue.main.async {
             self.isConnected = true
         }

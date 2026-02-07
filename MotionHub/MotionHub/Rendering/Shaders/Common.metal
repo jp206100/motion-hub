@@ -74,6 +74,163 @@ fragment float4 workingCompositeFragment(
     return baseColor;
 }
 
+// MARK: - Inspiration Blend Shader (for Pass 2 with inspiration packs)
+// Deconstructs inspiration textures into the procedural base layer
+// Six layered techniques: UV displacement, kaleidoscope fragmentation, edge glow,
+// slit-scan ribbons, luminance masking, and beat-triggered reveals
+// Must live in Common.metal because TextureComposite.metal is not in the Xcode build target
+
+// Screen blend - always brightens or maintains brightness
+static float3 tcBlendScreen(float3 base, float3 blend) {
+    return 1.0 - (1.0 - base) * (1.0 - blend);
+}
+
+// Ken Burns style slow pan/zoom for brief recognizable reveals
+static float2 tcKenBurns(float2 uv, float time, float seed) {
+    float panX = sin(time * 0.15 + seed * 3.14) * 0.15;
+    float panY = cos(time * 0.12 + seed * 2.17) * 0.1;
+    float zoom = 0.7 + sin(time * 0.08 + seed * 1.37) * 0.1;
+    float2 center = float2(0.5 + panX, 0.5 + panY);
+    return center + (uv - 0.5) * zoom;
+}
+
+// Luminance helper
+static float tcLuma(float3 c) {
+    return dot(c, float3(0.299, 0.587, 0.114));
+}
+
+fragment float4 inspirationBlendFragment(
+    VertexOut in [[stage_in]],
+    constant Uniforms& u [[buffer(0)]],
+    texture2d<float> baseTexture [[texture(0)]],
+    texture2d<float> inspirationTex [[texture(1)]]
+) {
+    constexpr sampler clampSampler(mag_filter::linear, min_filter::linear, address::clamp_to_edge);
+    constexpr sampler repeatSampler(mag_filter::linear, min_filter::linear, address::repeat);
+
+    float2 uv = in.texCoord;
+    float t = u.time * u.speed * 0.2;
+    float pulse = u.pulseStrength;
+    float intensity = u.intensity;
+
+    // =====================================================
+    // TECHNIQUE 1: UV DISPLACEMENT
+    // Texture luminance warps the procedural base layer
+    // Brand shapes become invisible topography
+    // =====================================================
+    float2 dispUV = uv + float2(sin(t * 0.3) * 0.12, cos(t * 0.2) * 0.08);
+    float dispLuma = tcLuma(inspirationTex.sample(clampSampler, dispUV).rgb);
+
+    float dispAmount = 0.04 * intensity * (1.0 + u.audioBass * pulse * 1.5);
+    float2 displaced = uv + (dispLuma - 0.5) * dispAmount;
+
+    float4 baseColor = baseTexture.sample(clampSampler, displaced);
+    float3 result = baseColor.rgb;
+
+    // =====================================================
+    // TECHNIQUE 2: KALEIDOSCOPIC FRAGMENTATION
+    // Texture folded into symmetrical abstract mandala
+    // Logos/faces become geometric patterns
+    // =====================================================
+    float2 centered = uv * 2.0 - 1.0;
+    float kAngle = atan2(centered.y, centered.x) + t * 0.3;
+    float kRadius = length(centered);
+
+    float segments = 6.0 + floor(u.audioMid * pulse * 4.0);
+    float segAngle = 6.28318 / segments;
+    kAngle = abs(fmod(kAngle, segAngle) - segAngle * 0.5);
+
+    float2 kaleidoUV = float2(cos(kAngle), sin(kAngle)) * kRadius * 0.6 + 0.5;
+    kaleidoUV += float2(t * 0.04, t * 0.025);
+    float3 kaleidoColor = inspirationTex.sample(repeatSampler, kaleidoUV).rgb;
+
+    // Kaleidoscope fades in and out on a ~15s cycle
+    float kaleidoWeight = (sin(t * 0.42) * 0.5 + 0.5) * 0.3 * intensity;
+    result = mix(result, kaleidoColor, kaleidoWeight);
+
+    // =====================================================
+    // TECHNIQUE 3: EDGE / CONTOUR GLOW
+    // Extract edges from texture → neon structural overlay
+    // Brand outlines glow over the procedural layer
+    // =====================================================
+    float2 edgeUV = uv + float2(sin(t * 0.15) * 0.1, cos(t * 0.1) * 0.08);
+    float eps = 0.004;
+    float lumC = tcLuma(inspirationTex.sample(clampSampler, edgeUV).rgb);
+    float lumR = tcLuma(inspirationTex.sample(clampSampler, edgeUV + float2(eps, 0)).rgb);
+    float lumL = tcLuma(inspirationTex.sample(clampSampler, edgeUV - float2(eps, 0)).rgb);
+    float lumU = tcLuma(inspirationTex.sample(clampSampler, edgeUV + float2(0, eps)).rgb);
+    float lumD = tcLuma(inspirationTex.sample(clampSampler, edgeUV - float2(0, eps)).rgb);
+
+    float edgeH = lumR - lumL;
+    float edgeV = lumU - lumD;
+    float edge = smoothstep(0.04, 0.25, sqrt(edgeH * edgeH + edgeV * edgeV));
+
+    // Edge glow colored by the texture itself, amplified by high frequencies
+    float3 edgeColor = inspirationTex.sample(clampSampler, edgeUV).rgb;
+    float edgeWeight = (cos(t * 0.55) * 0.5 + 0.5) * intensity;
+    result += edge * edgeColor * edgeWeight * (0.6 + u.audioHigh * pulse * 2.0);
+
+    // =====================================================
+    // TECHNIQUE 4: SLIT-SCAN DECONSTRUCTION
+    // Columns sample from time-offset positions
+    // Image stretches into flowing ribbons
+    // =====================================================
+    float scanPhase = t * 0.4;
+    float2 slitUV = uv;
+    slitUV.x = fract(uv.x + sin(uv.y * 8.0 + scanPhase) * 0.2);
+    slitUV.y = fract(uv.y + sin(uv.x * 6.0 + scanPhase * 0.7) * 0.15);
+    float3 slitColor = inspirationTex.sample(repeatSampler, slitUV).rgb;
+
+    // Slit-scan appears in horizontal bands that drift
+    float bandMask = smoothstep(0.0, 0.15, sin(uv.y * 6.0 + t * 0.3))
+                   * smoothstep(0.0, 0.15, sin(uv.x * 4.0 + t * 0.2));
+    float slitWeight = (sin(t * 0.7 + 2.0) * 0.5 + 0.5) * 0.2 * intensity * bandMask;
+    result = mix(result, slitColor, slitWeight);
+
+    // =====================================================
+    // TECHNIQUE 5: LUMINANCE MASKING
+    // Base layer brightness controls where texture shows
+    // Bright procedural areas reveal texture fragments
+    // =====================================================
+    float baseLuma = tcLuma(baseColor.rgb);
+    float lumaMask = smoothstep(0.3, 0.7, baseLuma);
+
+    float2 lumaUV = uv + float2(t * 0.03, -t * 0.02);
+    float3 lumaColor = inspirationTex.sample(clampSampler, lumaUV).rgb;
+
+    float lumaWeight = lumaMask * 0.2 * intensity * (sin(t * 0.35 + 3.0) * 0.5 + 0.5);
+    result = mix(result, lumaColor, lumaWeight);
+
+    // =====================================================
+    // TECHNIQUE 6: BEAT-TRIGGERED REVEAL
+    // On strong beats, briefly flash recognizable source
+    // Creates "oh I see it!" associability moments
+    // =====================================================
+    float beatHit = smoothstep(0.5, 0.85, u.audioPeak) * pulse;
+    if (beatHit > 0.01) {
+        float2 revealUV = tcKenBurns(uv, t, 0.0);
+        float3 revealColor = inspirationTex.sample(clampSampler, revealUV).rgb;
+        result = mix(result, revealColor, beatHit * 0.5 * intensity);
+    }
+
+    // =====================================================
+    // AUDIO REACTIVITY
+    // =====================================================
+    float bassPulseAmt = 1.0 + u.audioBass * pulse * 0.6;
+    result *= bassPulseAmt;
+
+    float3 hsv = rgb2hsv(result);
+    hsv.y = clamp(hsv.y + u.audioMid * intensity * 0.25, 0.0, 1.0);
+    result = hsv2rgb(hsv);
+
+    float highGlow = u.audioHigh * pulse * 0.15;
+    result += result * highGlow;
+
+    result = clamp(result, 0.0, 1.0);
+
+    return float4(result, 1.0);
+}
+
 // MARK: - Vertex Shader
 
 vertex VertexOut vertexShader(uint vertexID [[vertex_id]]) {

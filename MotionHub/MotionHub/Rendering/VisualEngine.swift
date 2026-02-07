@@ -44,6 +44,9 @@ class VisualEngine {
     private var previousFrameTexture: MTLTexture?
     private let transitionDuration: Float = 1.5
 
+    // MARK: - Frame Tracking
+    private var frameNumber: Int = 0
+
     // MARK: - Glitch Timing
     private var lastGlitchTime: Float = 0
     private var glitchHoldTime: Float = 0
@@ -106,7 +109,7 @@ class VisualEngine {
 
     private func setupPipelines() {
         guard let library = device.makeDefaultLibrary() else {
-            print("Failed to create Metal library")
+            print("🎨 ERROR: Failed to create Metal library")
             return
         }
 
@@ -119,7 +122,16 @@ class VisualEngine {
             pipelineStates["baseLayer"] = pipeline
         }
 
-        // Working composite pipeline (audio-reactive effects)
+        // Inspiration blend pipeline (inspiration pack textures blended with base layer)
+        if let pipeline = createPipeline(
+            library: library,
+            vertexFunction: "vertexShader",
+            fragmentFunction: "inspirationBlendFragment"
+        ) {
+            pipelineStates["inspirationBlend"] = pipeline
+        }
+
+        // Fallback composite pipeline (no inspiration textures)
         if let pipeline = createPipeline(
             library: library,
             vertexFunction: "vertexShader",
@@ -145,6 +157,15 @@ class VisualEngine {
         ) {
             pipelineStates["postProcess"] = pipeline
         }
+
+        // Log pipeline creation results
+        let required = ["baseLayer", "workingComposite", "glitch", "postProcess"]
+        for name in required {
+            if pipelineStates[name] == nil {
+                print("🎨 ERROR: Pipeline '\(name)' failed to create!")
+            }
+        }
+        print("🎨 Pipelines created: \(pipelineStates.keys.sorted().joined(separator: ", "))")
     }
 
     private func createPipeline(
@@ -152,15 +173,24 @@ class VisualEngine {
         vertexFunction: String,
         fragmentFunction: String
     ) -> MTLRenderPipelineState? {
+        guard let vertFunc = library.makeFunction(name: vertexFunction) else {
+            print("🎨 ERROR: Vertex function '\(vertexFunction)' not found in Metal library")
+            return nil
+        }
+        guard let fragFunc = library.makeFunction(name: fragmentFunction) else {
+            print("🎨 ERROR: Fragment function '\(fragmentFunction)' not found in Metal library")
+            return nil
+        }
+
         let descriptor = MTLRenderPipelineDescriptor()
-        descriptor.vertexFunction = library.makeFunction(name: vertexFunction)
-        descriptor.fragmentFunction = library.makeFunction(name: fragmentFunction)
+        descriptor.vertexFunction = vertFunc
+        descriptor.fragmentFunction = fragFunc
         descriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
 
         do {
             return try device.makeRenderPipelineState(descriptor: descriptor)
         } catch {
-            print("Failed to create pipeline: \(error)")
+            print("🎨 ERROR: Failed to create pipeline for '\(fragmentFunction)': \(error)")
             return nil
         }
     }
@@ -224,8 +254,14 @@ class VisualEngine {
             await MainActor.run {
                 self.inspirationTextures = textures
                 self.uniforms.textureCount = Int32(min(textures.count, 4))
-                self.paletteBuffer = loader.createPaletteBuffer()
-                print("🎨 Loaded \(textures.count) textures from pack")
+                // Only update palette buffer if pack has extracted colors; otherwise keep default
+                if let newPalette = loader.createPaletteBuffer() {
+                    self.paletteBuffer = newPalette
+                }
+                print("🎨 Loaded \(textures.count) textures from pack '\(pack.name)'")
+                for (i, tex) in textures.prefix(4).enumerated() {
+                    print("🎨   tex[\(i)]: \(tex.width)x\(tex.height) fmt=\(tex.pixelFormat.rawValue) storage=\(tex.storageMode.rawValue) usage=\(tex.usage.rawValue)")
+                }
             }
         }
     }
@@ -297,10 +333,26 @@ class VisualEngine {
             return
         }
 
+        frameNumber += 1
+
+        // GPU error detection
+        let capturedFrame = frameNumber
+        commandBuffer.addCompletedHandler { buffer in
+            if buffer.status == .error {
+                print("🎨 GPU ERROR on frame \(capturedFrame): \(buffer.error?.localizedDescription ?? "unknown")")
+            }
+        }
+
         // Update resolution and create render targets
         let viewportSize = view.drawableSize
         uniforms.resolution = simd_float2(Float(viewportSize.width), Float(viewportSize.height))
         createRenderTargets(size: viewportSize)
+
+        guard let baseTarget = renderTarget0, let compositeTarget = renderTarget1 else {
+            commandBuffer.present(drawable)
+            commandBuffer.commit()
+            return
+        }
 
         // Multi-pass rendering pipeline:
         // Pass 1: Base Layer (procedural patterns) -> renderTarget0
@@ -309,18 +361,35 @@ class VisualEngine {
         // Pass 4: Post Process (final grading) -> drawable
 
         // === PASS 1: BASE LAYER ===
-        if let baseTarget = renderTarget0 {
+        if let pipeline = pipelineStates["baseLayer"] {
             renderPass(
                 commandBuffer: commandBuffer,
-                pipeline: pipelineStates["baseLayer"],
+                pipeline: pipeline,
                 targetTexture: baseTarget,
                 inputTexture: nil,
                 additionalTextures: []
             )
         }
 
-        // === PASS 2: COMPOSITE ===
-        if let compositeTarget = renderTarget1, let baseTarget = renderTarget0 {
+        // === PASS 2: COMPOSITE (blend base layer with audio effects + inspiration textures) ===
+        if uniforms.textureCount > 0, let blendPipeline = pipelineStates["inspirationBlend"],
+           !inspirationTextures.isEmpty {
+            // Cycle through inspiration textures every 3 seconds for variety
+            let texIndex = Int(uniforms.time / 3.0) % inspirationTextures.count
+            let chosenTex = inspirationTextures[texIndex]
+
+            if frameNumber == 1 || frameNumber % 300 == 0 {
+                print("🎨 Pass 2: inspirationBlend tex[\(texIndex)/\(inspirationTextures.count)] fmt=\(chosenTex.pixelFormat.rawValue) \(chosenTex.width)x\(chosenTex.height) storage=\(chosenTex.storageMode.rawValue)")
+            }
+            renderPass(
+                commandBuffer: commandBuffer,
+                pipeline: blendPipeline,
+                targetTexture: compositeTarget,
+                inputTexture: baseTarget,
+                additionalTextures: [chosenTex]
+            )
+        } else {
+            // Fallback: no inspiration textures, use simple composite
             renderPass(
                 commandBuffer: commandBuffer,
                 pipeline: pipelineStates["workingComposite"],
@@ -331,24 +400,23 @@ class VisualEngine {
         }
 
         // === PASS 3: GLITCH ===
-        if let glitchTarget = renderTarget0, let compositeResult = renderTarget1 {
+        if let pipeline = pipelineStates["glitch"] {
             renderPass(
                 commandBuffer: commandBuffer,
-                pipeline: pipelineStates["glitch"],
-                targetTexture: glitchTarget,
-                inputTexture: compositeResult,
+                pipeline: pipeline,
+                targetTexture: baseTarget,
+                inputTexture: compositeTarget,
                 additionalTextures: []
             )
         }
 
         // === PASS 4: POST PROCESS ===
-        if let descriptor = view.currentRenderPassDescriptor,
-           let glitchResult = renderTarget0 {
+        if let descriptor = view.currentRenderPassDescriptor {
             renderFinalPass(
                 commandBuffer: commandBuffer,
                 pipeline: pipelineStates["postProcess"],
                 descriptor: descriptor,
-                inputTexture: glitchResult
+                inputTexture: baseTarget
             )
         }
 
@@ -456,6 +524,11 @@ class VisualEngine {
         var uniformsCopy = uniforms
         encoder.setVertexBytes(&uniformsCopy, length: MemoryLayout<Uniforms>.stride, index: 0)
         encoder.setFragmentBytes(&uniformsCopy, length: MemoryLayout<Uniforms>.stride, index: 0)
+
+        // Bind palette buffer for palette-based color grading in post-process
+        if let palette = paletteBuffer {
+            encoder.setFragmentBuffer(palette, offset: 0, index: 1)
+        }
 
         encoder.setFragmentTexture(inputTexture, index: 0)
 

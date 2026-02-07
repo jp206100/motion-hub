@@ -23,140 +23,14 @@ You should see the help output for the extraction script.
 
 ## Part 2: Xcode Project Setup
 
-Since Xcode project files are complex, here are THREE methods to get started. Choose the one that works best for you:
-
-### Method A: Create Project in Xcode GUI (Recommended)
-
-This is the standard, most reliable approach:
-
-1. **Open Xcode** on your Mac
-
-2. **Create New Project**:
-   - File > New > Project...
-   - Select "macOS" tab
-   - Choose "App" template
-   - Click "Next"
-
-3. **Configure Project**:
-   ```
-   Product Name: MotionHub
-   Team: (leave as None or select your team)
-   Organization Identifier: com.motionhub
-   Bundle Identifier: com.motionhub.MotionHub
-   Interface: SwiftUI
-   Language: Swift
-   ☐ Use Core Data (unchecked)
-   ☐ Include Tests (unchecked)
-   ```
-   - Click "Next"
-
-4. **Save Location**:
-   - Navigate to your `motion-hub` directory
-   - **IMPORTANT**: Click "New Folder" and name it "MotionHubProject" or similar
-   - Click "Create"
-
-5. **Add Our Source Files**:
-   - In Xcode's Project Navigator (left sidebar), RIGHT-CLICK on the "MotionHub" folder (blue icon)
-   - Select "Add Files to 'MotionHub'..."
-   - Navigate to `motion-hub/MotionHub/MotionHub/`
-   - Select ALL folders: `App`, `Models`, `Views`, `Services`, `Rendering`, `Resources`
-   - **IMPORTANT**: Make sure these options are checked:
-     - ☑ "Create groups"
-     - ☐ "Copy items if needed" (UNCHECKED - we want references, not copies)
-     - ☑ "Add to targets: MotionHub"
-   - Click "Add"
-
-6. **Remove Auto-Generated Files**:
-   - Xcode created its own `ContentView.swift` and `MotionHubApp.swift`
-   - Right-click each and select "Delete" > "Move to Trash"
-   - We're using our own versions
-
-7. **Configure Info.plist**:
-   - In Project Navigator, select the blue "MotionHub" project icon (top)
-   - Select "MotionHub" under TARGETS
-   - Go to "Info" tab
-   - Find "Custom macOS Application Target Properties"
-   - If you see a generated Info.plist, delete those keys
-   - Click "+" to add a custom property:
-     - Key: `Privacy - Microphone Usage Description`
-     - Value: `Motion Hub needs access to audio input to analyze sound and create reactive visuals.`
-
-8. **Add Entitlements**:
-   - Still in target settings, go to "Signing & Capabilities"
-   - Click "+ Capability"
-   - Add "Audio Input"
-   - This creates MotionHub.entitlements automatically
-
-9. **Configure Build Settings**:
-   - In target settings, go to "Build Settings"
-   - Search for "macOS Deployment Target"
-   - Set to "14.0"
-   - Search for "Info.plist File"
-   - Set to: `MotionHub/MotionHub/Info.plist`
-
-10. **Add Metal Files**:
-    - Make sure all `.metal` files are in the "Compile Sources" build phase
-    - Select project > Build Phases > Compile Sources
-    - If `.metal` files are missing, click "+" and add them from `Rendering/Shaders/`
-
-11. **Build the Project**:
-    ```
-    Press ⌘B or Product > Build
-    ```
-
-12. **Fix Any Build Errors**:
-    - Missing imports: Add framework in "General" > "Frameworks and Libraries"
-    - File not found: Make sure all files are added to the target
-
-### Method B: Using Package.swift (Experimental)
-
-Swift Package Manager is simpler but may have limitations with Metal shaders:
-
-1. The repository includes a `Package.swift` file (create if missing):
+The Xcode project is included in the repository. Open it and build:
 
 ```bash
-cd motion-hub
-cat > Package.swift << 'EOF'
-// swift-tools-version: 5.9
-import PackageDescription
-
-let package = Package(
-    name: "MotionHub",
-    platforms: [.macOS(.v14)],
-    products: [
-        .executable(name: "MotionHub", targets: ["MotionHub"])
-    ],
-    targets: [
-        .executableTarget(
-            name: "MotionHub",
-            path: "MotionHub/MotionHub"
-        )
-    ]
-)
-EOF
+open MotionHub.xcodeproj
+# Press ⌘B to build, ⌘R to build and run
 ```
 
-2. Open in Xcode:
-   ```bash
-   open Package.swift
-   ```
-
-3. Xcode will load it as a Swift Package
-4. Build with ⌘B
-
-**Note**: This method may require additional configuration for Metal shaders and Info.plist.
-
-### Method C: Command Line (Advanced)
-
-If you're comfortable with command-line tools:
-
-1. Install xcodegen (optional):
-   ```bash
-   brew install xcodegen
-   ```
-
-2. Create `project.yml` configuration
-3. Run `xcodegen generate`
+If you need to adjust signing, select the **MotionHub** target in Xcode and set your team under **Signing & Capabilities** (or leave it as "Sign to Run Locally").
 
 ## Part 3: Additional System Setup
 
@@ -236,24 +110,28 @@ After setup, your workspace should look like:
 
 ```
 motion-hub/
-├── MotionHub.xcodeproj/          # Xcode project (created by you)
+├── MotionHub.xcodeproj/          # Xcode project
 │   └── project.pbxproj
-├── MotionHub/                     # Source code
-│   ├── MotionHub/                 # Main app bundle
-│   │   ├── App/                   # App entry point
-│   │   ├── Models/                # Data models
-│   │   ├── Views/                 # SwiftUI views
-│   │   ├── Services/              # Audio, MIDI, packs
-│   │   ├── Rendering/             # Metal engine + shaders
-│   │   ├── Resources/             # Colors, fonts
-│   │   └── Info.plist             # App configuration
-│   └── MotionHub.entitlements     # App permissions
-├── preprocessing/                 # Python AI pipeline
-│   ├── venv/                      # Virtual environment ✅
-│   ├── extract.py                 # Extraction script ✅
-│   └── requirements.txt           # Python deps ✅
-├── README.md                      # Project overview
-└── SETUP.md                       # This file
+├── MotionHub/
+│   └── MotionHub/
+│       ├── App/                  # App entry point + font registration
+│       ├── Models/               # AppState, InspirationPack data models
+│       ├── Views/                # SwiftUI views
+│       ├── Services/             # AudioAnalyzer, MIDIHandler, OSCHandler,
+│       │                         # PackManager, PreprocessingManager, DebugLogger
+│       ├── Rendering/            # Metal engine + shaders
+│       ├── Resources/            # Colors, fonts, assets
+│       ├── Info.plist            # App configuration
+│       └── MotionHub.entitlements # App permissions
+├── preprocessing/                # Python AI pipeline
+│   ├── extract.py                # Extraction script
+│   ├── requirements.txt          # Python deps
+│   └── utils/
+├── MaxForLive/                   # Max for Live devices (.amxd)
+├── Scripts/                      # Build and setup scripts
+├── Tools/                        # OSC test utilities
+├── README.md                     # Project overview
+└── SETUP.md                      # This file
 ```
 
 ## Next Steps

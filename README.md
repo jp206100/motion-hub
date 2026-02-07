@@ -57,33 +57,14 @@ Built for musicians performing with Ableton Live and Push 2.
 
 ## Getting Started
 
-### Option A: Download the DMG (Recommended)
+### Installation
 
 1. Go to [Releases](https://github.com/jp206100/motion-hub/releases) and download the latest `.dmg` file
 2. Open the DMG and drag **Motion Hub** into your Applications folder
 3. Launch Motion Hub — on first run, macOS may ask you to confirm since it's from an identified developer
 4. Grant microphone access when prompted (required for audio-reactive visuals)
 
-### Option B: Build from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/jp206100/motion-hub.git
-cd motion-hub
-
-# Set up the Python preprocessing environment
-cd preprocessing
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cd ..
-
-# Open the Xcode project and build
-open MotionHub.xcodeproj
-# Press ⌘R to build and run
-```
-
-See [SETUP.md](SETUP.md) for detailed build instructions and troubleshooting.
+To build from source instead, see [SETUP.md](SETUP.md).
 
 ### Audio Setup (BlackHole)
 

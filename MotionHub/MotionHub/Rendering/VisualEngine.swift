@@ -374,8 +374,8 @@ class VisualEngine {
         // === PASS 2: COMPOSITE (blend base layer with audio effects + inspiration textures) ===
         if uniforms.textureCount > 0, let blendPipeline = pipelineStates["inspirationBlend"],
            !inspirationTextures.isEmpty {
-            // Cycle through inspiration textures every 5 seconds for variety
-            let texIndex = Int(uniforms.time / 5.0) % inspirationTextures.count
+            // Cycle through inspiration textures every 3 seconds for variety
+            let texIndex = Int(uniforms.time / 3.0) % inspirationTextures.count
             let chosenTex = inspirationTextures[texIndex]
 
             if frameNumber == 1 || frameNumber % 300 == 0 {

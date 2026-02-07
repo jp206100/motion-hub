@@ -28,7 +28,7 @@ enum AppFonts {
 
     // Logo font: Lilita One (Google Font - bundled)
     static func logo(size: CGFloat = 24) -> Font {
-        Font.custom("LilitaOne-Regular", size: size)
+        Font.custom("Lilita One", size: size)
     }
 
     // System fallbacks (same as above now)

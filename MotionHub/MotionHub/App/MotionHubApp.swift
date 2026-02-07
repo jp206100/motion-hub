@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import CoreText
 
 @main
 struct MotionHubApp: App {
@@ -19,6 +20,18 @@ struct MotionHubApp: App {
 
     init() {
         PackManager.setupApplicationDirectories()
+        Self.registerCustomFonts()
+    }
+
+    private static func registerCustomFonts() {
+        guard let fontURL = Bundle.main.url(forResource: "LilitaOne-Regular", withExtension: "ttf") else {
+            print("⚠️ Could not find LilitaOne-Regular.ttf in bundle")
+            return
+        }
+        var error: Unmanaged<CFError>?
+        if !CTFontManagerRegisterFontsForURL(fontURL as CFURL, .process, &error) {
+            print("⚠️ Failed to register Lilita One font: \(error?.takeRetainedValue().localizedDescription ?? "unknown error")")
+        }
     }
 
     var body: some Scene {

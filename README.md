@@ -62,7 +62,7 @@ Built for musicians performing with Ableton Live and Push 2.
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/motion-hub.git
+git clone https://github.com/<your-username>/motion-hub.git
 cd motion-hub
 
 # Set up the Python preprocessing environment

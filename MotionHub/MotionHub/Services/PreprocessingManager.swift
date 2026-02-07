@@ -120,7 +120,15 @@ class PreprocessingManager: ObservableObject, @unchecked Sendable {
     // MARK: - Private Methods
 
     private func findPython() -> String? {
-        // Common Python 3 paths
+        // Prefer the project's own venv Python to avoid executing untrusted binaries
+        let venvPython = scriptPath.deletingLastPathComponent()
+            .appendingPathComponent("venv/bin/python3").path
+        if FileManager.default.fileExists(atPath: venvPython) {
+            logger.debug("Using venv Python: \(venvPython)", context: "Preprocessing")
+            return venvPython
+        }
+
+        // Fallback: well-known system paths (in order of trust)
         let pythonPaths = [
             "/usr/bin/python3",
             "/usr/local/bin/python3",
@@ -130,31 +138,12 @@ class PreprocessingManager: ObservableObject, @unchecked Sendable {
 
         for path in pythonPaths {
             if FileManager.default.fileExists(atPath: path) {
+                logger.warning("venv not found; falling back to system Python at \(path)", context: "Preprocessing")
                 return path
             }
         }
 
-        // Try to find via `which`
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
-        process.arguments = ["python3"]
-
-        let pipe = Pipe()
-        process.standardOutput = pipe
-
-        do {
-            try process.run()
-            process.waitUntilExit()
-
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            if let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
-               !path.isEmpty {
-                return path
-            }
-        } catch {
-            logger.debug("Could not find python3 via which: \(error.localizedDescription)", context: "Preprocessing")
-        }
-
+        logger.error("No Python 3 installation found", context: "Preprocessing")
         return nil
     }
 

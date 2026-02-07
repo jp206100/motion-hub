@@ -174,7 +174,14 @@ final class DebugLogger {
         return recentLogs.map { entry in
             let errorStr = entry.error.map { " | Error: \($0.localizedDescription)" } ?? ""
             let contextStr = entry.context.map { " [\($0)]" } ?? ""
-            return "[\(entry.formattedTimestamp)] \(entry.level.rawValue)\(contextStr) \(entry.message)\(errorStr)"
+            let line = "[\(entry.formattedTimestamp)] \(entry.level.rawValue)\(contextStr) \(entry.message)\(errorStr)"
+            return Self.redactUserPaths(line)
         }.joined(separator: "\n")
+    }
+
+    /// Replace the user's home directory path with ~ to avoid leaking usernames in exports.
+    static func redactUserPaths(_ string: String) -> String {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        return string.replacingOccurrences(of: home, with: "~")
     }
 }

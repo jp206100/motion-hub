@@ -139,6 +139,53 @@ Temporary Items
 # Application Support
 Library/
 
-# Test files
-*.test.swift
-*Tests/
+# ---- Security: Environment & Secrets ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.crt
+*.csr
+*.p12
+*.pfx
+*.keystore
+*.jks
+*.mobileprovision
+*.provisionprofile
+
+# ---- IDE / Editor (cross-platform) ----
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ---- OS: Windows (for contributors) ----
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+
+# ---- Logs ----
+*.log
+logs/
+
+# ---- Database files ----
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+
+# ---- Temp / Cache ----
+*.tmp
+*.temp
+*.cache
+
+# ---- Node (future-proofing) ----
+node_modules/
+
+# ---- Python (supplement) ----
+.venv/

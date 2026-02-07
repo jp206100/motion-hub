@@ -139,7 +139,8 @@ class PackManager: ObservableObject {
 
                 let mediaDirectory = packURL.appendingPathComponent("media")
                 let thumbnailURLs = pack.mediaFiles.prefix(3).compactMap { file -> URL? in
-                    return mediaDirectory.appendingPathComponent(file.filename)
+                    guard let safeFilename = Self.sanitizeFilename(file.filename) else { return nil }
+                    return mediaDirectory.appendingPathComponent(safeFilename)
                 }
 
                 let packInfo = PackInfo(
@@ -515,12 +516,30 @@ class PackManager: ObservableObject {
     }
 
     func mediaURL(for media: MediaFile, in packID: UUID) -> URL? {
+        guard let safeFilename = Self.sanitizeFilename(media.filename) else {
+            logger.warning("Rejected unsafe filename: \(media.filename)", context: "PackManager")
+            return nil
+        }
         let packDirectory = Self.packsDirectory.appendingPathComponent(packID.uuidString)
         let mediaDirectory = packDirectory.appendingPathComponent("media")
-        return mediaDirectory.appendingPathComponent(media.filename)
+        return mediaDirectory.appendingPathComponent(safeFilename)
     }
 
     // MARK: - Helper Methods
+
+    /// Sanitize a filename to prevent path traversal attacks.
+    /// Strips directory components and rejects names containing "..".
+    private static func sanitizeFilename(_ filename: String) -> String? {
+        // Take only the last path component to strip any directory traversal
+        let sanitized = (filename as NSString).lastPathComponent
+        // Reject empty names, hidden files starting with ".", and ".." sequences
+        guard !sanitized.isEmpty,
+              !sanitized.hasPrefix("."),
+              !sanitized.contains("..") else {
+            return nil
+        }
+        return sanitized
+    }
 
     private func determineMediaType(for url: URL) -> MediaType {
         let ext = url.pathExtension.lowercased()

@@ -26,6 +26,11 @@ enum AppFonts {
         Font.system(size: size, weight: .regular, design: .monospaced)
     }
 
+    // Logo font: Lilita One (Google Font - bundled)
+    static func logo(size: CGFloat = 24) -> Font {
+        Font.custom("Lilita One", size: size)
+    }
+
     // System fallbacks (same as above now)
     static let displayFallback = Font.system(.body, design: .default)
     static let monoFallback = Font.system(.body, design: .monospaced)

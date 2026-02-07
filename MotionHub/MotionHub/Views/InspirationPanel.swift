@@ -22,6 +22,12 @@ struct InspirationPanel: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Logo
+            logoHeader
+
+            Divider()
+                .background(AppColors.border)
+
             // Header
             header
 
@@ -39,8 +45,8 @@ struct InspirationPanel: View {
                     }
 
                     // Empty slots for adding more
-                    if mediaFiles.count < 12 {
-                        ForEach(0..<(12 - mediaFiles.count), id: \.self) { _ in
+                    if mediaFiles.count < 10 {
+                        ForEach(0..<(10 - mediaFiles.count), id: \.self) { _ in
                             MediaThumbView(media: nil)
                                 .onTapGesture {
                                     showingFilePicker = true
@@ -72,6 +78,15 @@ struct InspirationPanel: View {
     }
 
     // MARK: - Subviews
+
+    private var logoHeader: some View {
+        Text("MotionHub")
+            .font(AppFonts.logo(size: 22))
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+    }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {

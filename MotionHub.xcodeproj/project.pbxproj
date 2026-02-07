@@ -34,6 +34,8 @@
 		A10000250000000000000025 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000250000000000000025 /* Assets.xcassets */; };
 		A10000260000000000000026 /* TextureLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000260000000000000026 /* TextureLoader.swift */; };
 		A10000270000000000000027 /* OSCHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000270000000000000027 /* OSCHandler.swift */; };
+		A10000280000000000000028 /* LilitaOne-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A20000280000000000000028 /* LilitaOne-Regular.ttf */; };
+		A10000290000000000000029 /* FullscreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000320000000000000032 /* FullscreenView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -68,6 +70,8 @@
 		A20000310000000000000031 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A20000260000000000000026 /* TextureLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextureLoader.swift; sourceTree = "<group>"; };
 		A20000270000000000000027 /* OSCHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSCHandler.swift; sourceTree = "<group>"; };
+		A20000280000000000000028 /* LilitaOne-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "LilitaOne-Regular.ttf"; sourceTree = "<group>"; };
+		A20000320000000000000032 /* FullscreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -137,6 +141,7 @@
 				A20000110000000000000011 /* InspirationPanel.swift */,
 				A20000120000000000000012 /* PreviewPanel.swift */,
 				A20000130000000000000013 /* ControlsPanel.swift */,
+				A20000320000000000000032 /* FullscreenView.swift */,
 				A40000090000000000000009 /* Components */,
 				A40000100000000000000010 /* Modals */,
 			);
@@ -172,8 +177,17 @@
 			children = (
 				A20000190000000000000019 /* AppColors.swift */,
 				A20000200000000000000020 /* AppFonts.swift */,
+				A40000120000000000000012 /* Fonts */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		A40000120000000000000012 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				A20000280000000000000028 /* LilitaOne-Regular.ttf */,
+			);
+			path = Fonts;
 			sourceTree = "<group>";
 		};
 		A40000090000000000000009 /* Components */ = {
@@ -265,6 +279,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10000250000000000000025 /* Assets.xcassets in Resources */,
+				A10000280000000000000028 /* LilitaOne-Regular.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -301,6 +316,7 @@
 				A10000240000000000000024 /* PostProcess.metal in Sources */,
 				A10000260000000000000026 /* TextureLoader.swift in Sources */,
 				A10000270000000000000027 /* OSCHandler.swift in Sources */,
+				A10000290000000000000029 /* FullscreenView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

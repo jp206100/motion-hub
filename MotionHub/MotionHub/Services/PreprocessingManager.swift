@@ -173,14 +173,15 @@ class PreprocessingManager: ObservableObject, @unchecked Sendable {
             outputPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
                 let data = handle.availableData
                 if let output = String(data: data, encoding: .utf8), !output.isEmpty {
-                    DispatchQueue.main.async {
-                        self?.logger.debug("Python output: \(output)", context: "Preprocessing")
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self else { return }
+                        self.logger.debug("Python output: \(output)", context: "Preprocessing")
 
                         // Update progress based on output
                         if output.contains("Processing") {
-                            self?.progress = min(0.9, (self?.progress ?? 0) + 0.1)
+                            self.progress = min(0.9, self.progress + 0.1)
                             if let filename = output.components(separatedBy: " ").last {
-                                self?.statusMessage = "Processing \(filename)..."
+                                self.statusMessage = "Processing \(filename)..."
                             }
                         }
                     }
@@ -191,7 +192,7 @@ class PreprocessingManager: ObservableObject, @unchecked Sendable {
             errorPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
                 let data = handle.availableData
                 if let error = String(data: data, encoding: .utf8), !error.isEmpty {
-                    DispatchQueue.main.async {
+                    DispatchQueue.main.async { [weak self] in
                         self?.logger.warning("Python stderr: \(error)", context: "Preprocessing")
                     }
                 }
@@ -207,12 +208,12 @@ class PreprocessingManager: ObservableObject, @unchecked Sendable {
                 if !success {
                     let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
                     let errorOutput = String(data: errorData, encoding: .utf8) ?? "Unknown error"
-                    DispatchQueue.main.async {
+                    DispatchQueue.main.async { [weak self] in
                         self?.lastError = "Preprocessing failed: \(errorOutput)"
                         self?.logger.error("Preprocessing failed with status \(process.terminationStatus): \(errorOutput)", context: "Preprocessing")
                     }
                 } else {
-                    DispatchQueue.main.async {
+                    DispatchQueue.main.async { [weak self] in
                         self?.logger.info("Preprocessing completed successfully", context: "Preprocessing")
                     }
                 }

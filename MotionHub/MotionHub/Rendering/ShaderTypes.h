@@ -50,11 +50,18 @@ struct Uniforms {
     float glitchHoldTime;    // How long to hold a frozen frame
 };
 
-// Vertex output
+// Vertex output (Metal attributes only apply when compiled as Metal)
+#ifdef __METAL_VERSION__
 struct VertexOut {
     simd_float4 position [[position]];
     simd_float2 texCoord;
 };
+#else
+struct VertexOut {
+    simd_float4 position;
+    simd_float2 texCoord;
+};
+#endif
 
 // Color palette passed from inspiration pack
 struct ColorPalette {

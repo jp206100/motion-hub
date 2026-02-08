@@ -31,6 +31,8 @@ mkdir -p "${BUILD_DIR}" "${EXPORT_DIR}" "${DMG_DIR}"
 
 if [ "$SKIP_BUILD" = false ]; then
     echo "==> Archiving ${APP_NAME} (${CONFIGURATION})..."
+    # Ad-hoc sign (CODE_SIGN_IDENTITY="-") to embed entitlements without a developer certificate.
+    # This is required for macOS TCC to persist microphone/audio permission grants.
     xcodebuild archive \
         -project "${PROJECT}" \
         -scheme "${SCHEME}" \
@@ -38,8 +40,6 @@ if [ "$SKIP_BUILD" = false ]; then
         -archivePath "${ARCHIVE_PATH}" \
         -destination "generic/platform=macOS" \
         CODE_SIGN_IDENTITY="-" \
-        CODE_SIGNING_REQUIRED=NO \
-        CODE_SIGNING_ALLOWED=NO \
         ONLY_ACTIVE_ARCH=NO \
         | xcbeautify 2>/dev/null || xcodebuild archive \
         -project "${PROJECT}" \
@@ -48,8 +48,6 @@ if [ "$SKIP_BUILD" = false ]; then
         -archivePath "${ARCHIVE_PATH}" \
         -destination "generic/platform=macOS" \
         CODE_SIGN_IDENTITY="-" \
-        CODE_SIGNING_REQUIRED=NO \
-        CODE_SIGNING_ALLOWED=NO \
         ONLY_ACTIVE_ARCH=NO
 
     echo "==> Exporting app from archive..."

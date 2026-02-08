@@ -64,11 +64,8 @@ class AudioAnalyzer: ObservableObject {
             vDSP_DFT_Direction.FORWARD
         )
 
-        print("🎤 AudioAnalyzer init() - requesting permission...")
-
-        // Request permission before loading devices
-        requestMicrophonePermission()
-
+        // Permission is requested via refreshDevices() when ContentView appears.
+        // Requesting here too can cause a race condition with duplicate dialogs.
         print("🎤 AudioAnalyzer init() complete")
     }
 

@@ -24,7 +24,7 @@ Built for musicians performing with Ableton Live and Push 2.
 
 ### Live Control
 - **Ableton Push 2** — Direct MIDI CC mapping (CC 71–79) for hands-on parameter control
-- **OSC** — Network control from Max for Live devices on port 9000 (`/motionhub/*` address space)
+- **OSC** — Network control on port 9000 (`/motionhub/*` address space) via [M4L MotionHub Controller](https://github.com/jp206100/M4L-MotionHub-Controller) or any OSC-compatible app
 - **GUI knobs** — On-screen rotary controls for all parameters
 - **Keyboard shortcuts** — Quick access to common actions
 
@@ -91,10 +91,11 @@ Connect Push 2 via USB and configure the encoders to send the following CC numbe
 
 ### OSC Setup (Max for Live)
 
-Motion Hub listens on **UDP port 9000** for OSC messages. Two Max for Live devices are included in the `MaxForLive/` directory:
+Motion Hub listens on **UDP port 9000** for OSC messages.
 
-- **MotionHub Control.amxd** — MIDI parameter control
-- **UJ MH Connect.amxd** — OSC connection bridge
+A dedicated **Max for Live device** is available for controlling Motion Hub directly from Ableton Live:
+
+> **[M4L MotionHub Controller](https://github.com/jp206100/M4L-MotionHub-Controller)** — Download the Max for Live devices (.amxd) and learn more about setup and usage.
 
 Address format: `/motionhub/<parameter>` (e.g., `/motionhub/intensity`, `/motionhub/glitch`)
 
@@ -166,7 +167,6 @@ motion-hub/
 │   ├── extract.py                      # Main extraction script
 │   ├── requirements.txt                # NumPy, OpenCV, scikit-learn, Pillow
 │   └── utils/                          # Processing utilities
-├── MaxForLive/                         # Max for Live devices (.amxd)
 ├── Scripts/                            # Build and setup scripts
 ├── Tools/                              # OSC test utilities
 ├── SETUP.md                            # Detailed development setup guide

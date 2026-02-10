@@ -127,7 +127,6 @@ motion-hub/
 │   ├── extract.py                # Extraction script
 │   ├── requirements.txt          # Python deps
 │   └── utils/
-├── MaxForLive/                   # Max for Live devices (.amxd)
 ├── Scripts/                      # Build and setup scripts
 ├── Tools/                        # OSC test utilities
 ├── README.md                     # Project overview

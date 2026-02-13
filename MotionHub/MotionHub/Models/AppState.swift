@@ -11,10 +11,9 @@ import AppKit
 
 class AppState: ObservableObject {
     // MARK: - Controls
-    @Published var intensity: Double = 0.72       // 0.0 - 1.0
     @Published var glitchAmount: Double = 0.35    // 0.0 - 1.0
     @Published var speed: Int = 2                 // 1, 2, 3, 4 (multiplier)
-    @Published var colorShift: Double = 0.15      // 0.0 - 1.0
+    @Published var colorShift: Double = 0.72      // 0.0 - 1.0 (drives both intensity and hue shift)
     @Published var pulseStrength: Double = 0.6    // 0.0 - 1.0 (how strongly visuals react to beats)
     @Published var freqMin: Double = 80           // Hz (20 - 20000)
     @Published var freqMax: Double = 4200         // Hz (20 - 20000)
@@ -53,10 +52,10 @@ class AppState: ObservableObject {
     }
 
     func loadPackSettings(_ settings: PackSettings) {
-        intensity = settings.intensity
+        // Use the intensity value from old packs as colorShift (combined control)
+        colorShift = settings.intensity
         glitchAmount = settings.glitchAmount
         speed = settings.speed
-        colorShift = settings.colorShift
         pulseStrength = settings.pulseStrength
         freqMin = settings.freqMin
         freqMax = settings.freqMax
@@ -66,7 +65,7 @@ class AppState: ObservableObject {
 
     func getCurrentSettings() -> PackSettings {
         PackSettings(
-            intensity: intensity,
+            intensity: colorShift,
             glitchAmount: glitchAmount,
             speed: speed,
             colorShift: colorShift,

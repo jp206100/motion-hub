@@ -61,7 +61,7 @@ struct PackSettings: Codable {
         intensity: 0.72,
         glitchAmount: 0.35,
         speed: 2,
-        colorShift: 0.15,
+        colorShift: 0.72,
         pulseStrength: 0.6,
         freqMin: 80,
         freqMax: 4200,

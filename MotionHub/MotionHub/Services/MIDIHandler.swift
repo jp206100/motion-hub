@@ -158,7 +158,8 @@ class MIDIHandler: ObservableObject {
 
             switch controlChange {
             case .intensity:
-                appState.intensity = Double(value) / 127.0
+                // Legacy: intensity CC now maps to colorShift (combined control)
+                appState.colorShift = Double(value) / 127.0
 
             case .glitchAmount:
                 appState.glitchAmount = Double(value) / 127.0

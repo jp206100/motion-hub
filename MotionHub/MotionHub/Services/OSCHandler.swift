@@ -356,6 +356,7 @@ class OSCHandler: ObservableObject {
 
             switch oscAddress {
             case .intensity:
+                // Legacy: intensity now maps to colorShift (combined control)
                 if let value = self.extractFloat(from: arguments) {
                     // Normalize: accept 0-1 or 0-100 range
                     let normalized: Float
@@ -366,7 +367,7 @@ class OSCHandler: ObservableObject {
                     } else {
                         normalized = value
                     }
-                    appState.intensity = Double(clamp(normalized, min: 0, max: 1))
+                    appState.colorShift = Double(clamp(normalized, min: 0, max: 1))
                 }
 
             case .glitchAmount:

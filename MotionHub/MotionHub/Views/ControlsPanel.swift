@@ -73,12 +73,12 @@ struct ControlsPanel: View {
 
     private var controlsSection: some View {
         VStack(spacing: 20) {
-            // Row 1: Intensity, Glitch Amount
+            // Row 1: Color Shift, Glitch Amount
             HStack(spacing: 20) {
                 KnobView(
-                    value: $appState.intensity,
-                    label: "Intensity",
-                    displayValue: "\(Int(appState.intensity * 100))%"
+                    value: $appState.colorShift,
+                    label: "Color Shift",
+                    displayValue: "\(Int(appState.colorShift * 100))%"
                 )
 
                 KnobView(
@@ -88,7 +88,7 @@ struct ControlsPanel: View {
                 )
             }
 
-            // Row 2: Speed, Color Shift
+            // Row 2: Speed, Pulse Strength
             HStack(spacing: 20) {
                 KnobView(
                     value: Binding(
@@ -102,23 +102,10 @@ struct ControlsPanel: View {
                 )
 
                 KnobView(
-                    value: $appState.colorShift,
-                    label: "Color Shift",
-                    displayValue: "\(Int(appState.colorShift * 100))%"
-                )
-            }
-
-            // Row 3: Pulse Strength (dedicated beat response control)
-            HStack(spacing: 20) {
-                KnobView(
                     value: $appState.pulseStrength,
                     label: "Pulse",
                     displayValue: "\(Int(appState.pulseStrength * 100))%"
                 )
-
-                // Empty space to maintain symmetry, or could add another control later
-                Spacer()
-                    .frame(width: 80)
             }
         }
     }

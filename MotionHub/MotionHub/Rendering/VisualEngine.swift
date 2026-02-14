@@ -80,7 +80,7 @@ class VisualEngine {
             intensity: 0.72,
             glitchAmount: 0.35,
             speed: 2.0,
-            colorShift: 0.15,
+            colorShift: 0.72,
             pulseStrength: 0.6,
             isMonochrome: 0,
             resolution: simd_float2(1920, 1080),
@@ -303,8 +303,8 @@ class VisualEngine {
         }
         uniforms.audioPeak = peakAudioLevel
 
-        // Controls
-        uniforms.intensity = Float(appState.intensity)
+        // Controls — colorShift drives both intensity and hue shift
+        uniforms.intensity = Float(appState.colorShift)
         uniforms.glitchAmount = Float(appState.glitchAmount)
         uniforms.speed = Float(appState.speed)
         uniforms.colorShift = Float(appState.colorShift)

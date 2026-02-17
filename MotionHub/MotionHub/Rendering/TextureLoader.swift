@@ -37,6 +37,11 @@ class TextureLoader {
 
     /// Load textures from an inspiration pack's artifacts
     func loadFromPack(_ pack: InspirationPack, artifacts: ExtractedArtifacts?) async -> [MTLTexture] {
+        // Clear all previously cached textures to ensure strict pack isolation.
+        // Without this, textures from prior packs persist in loadedTextures and can
+        // leak into the current pack via getRandomTextures() during visual resets.
+        clearAll()
+
         var textures: [MTLTexture] = []
 
         // Load original media files - prioritize images first for clear brand presence,

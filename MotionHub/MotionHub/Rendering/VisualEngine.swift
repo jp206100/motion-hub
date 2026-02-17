@@ -247,10 +247,25 @@ class VisualEngine {
 
     /// Load textures from the current inspiration pack
     func loadInspirationPack(_ pack: InspirationPack, artifacts: ExtractedArtifacts?) {
+        // Immediately clear all old textures to prevent any cross-pack leaking
+        // while the new pack's textures load asynchronously.
+        clearTextures()
+
+        // Validate that artifacts belong to this pack; discard mismatched artifacts
+        let validatedArtifacts: ExtractedArtifacts?
+        if let artifacts = artifacts, artifacts.packId == pack.id {
+            validatedArtifacts = artifacts
+        } else {
+            if let artifacts = artifacts {
+                print("🎨 Warning: artifacts packId \(artifacts.packId) does not match pack \(pack.id) — ignoring stale artifacts")
+            }
+            validatedArtifacts = nil
+        }
+
         Task {
             guard let loader = textureLoader else { return }
 
-            let textures = await loader.loadFromPack(pack, artifacts: artifacts)
+            let textures = await loader.loadFromPack(pack, artifacts: validatedArtifacts)
             await MainActor.run {
                 self.inspirationTextures = textures
                 self.uniforms.textureCount = Int32(min(textures.count, 4))

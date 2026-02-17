@@ -238,8 +238,12 @@ struct InspirationPanel: View {
                     }
                 }
 
-                // Update app state on main thread
+                // Update app state on main thread.
+                // Clear extractedArtifacts BEFORE updating currentPack so that
+                // the renderer doesn't pick up stale artifacts from a previous
+                // pack when it detects the pack ID change.
                 await MainActor.run {
+                    appState.extractedArtifacts = nil
                     appState.currentPack = savedPack
                     appState.isProcessingMedia = true
                     appState.processingMessage = "Processing media..."

@@ -170,8 +170,9 @@ struct MetalPreviewView: NSViewRepresentable {
         private var audioLevelUpdateTime: CFAbsoluteTime = CFAbsoluteTimeGetCurrent()
         private var hasLoggedFirstFrame = false
 
-        // Track loaded pack to detect changes
+        // Track loaded pack and artifacts to detect changes
         private var loadedPackID: UUID?
+        private var loadedArtifactsPackID: UUID?
 
         init(appState: AppState, audioAnalyzer: AudioAnalyzer) {
             self.appState = appState
@@ -188,6 +189,7 @@ struct MetalPreviewView: NSViewRepresentable {
             if let pack = appState.currentPack {
                 visualEngine?.loadInspirationPack(pack, artifacts: appState.extractedArtifacts)
                 loadedPackID = pack.id
+                loadedArtifactsPackID = appState.extractedArtifacts?.packId
             }
         }
 
@@ -228,9 +230,13 @@ struct MetalPreviewView: NSViewRepresentable {
                 }
             }
 
-            // Detect inspiration pack changes and load textures into visual engine
+            // Detect inspiration pack changes and load textures into visual engine.
+            // Track both pack ID and artifacts pack ID so we reload when:
+            //  - A different pack is selected (pack ID changes)
+            //  - Artifacts finish preprocessing for the current pack (artifacts pack ID changes)
             let currentPackID = appState.currentPack?.id
-            if currentPackID != loadedPackID {
+            let currentArtifactsPackID = appState.extractedArtifacts?.packId
+            if currentPackID != loadedPackID || currentArtifactsPackID != loadedArtifactsPackID {
                 if let pack = appState.currentPack {
                     print("🎨 Inspiration pack changed - loading textures for '\(pack.name)'")
                     visualEngine?.loadInspirationPack(pack, artifacts: appState.extractedArtifacts)
@@ -239,6 +245,7 @@ struct MetalPreviewView: NSViewRepresentable {
                     visualEngine?.clearTextures()
                 }
                 loadedPackID = currentPackID
+                loadedArtifactsPackID = currentArtifactsPackID
             }
 
             // Update and render using VisualEngine

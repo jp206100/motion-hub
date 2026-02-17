@@ -33,6 +33,7 @@ class VisualEngine {
     private var startTime: CFAbsoluteTime
     private var currentSeed: UInt32 = 0
     private var activePattern: Int32 = 0
+    private var loadingPackID: UUID?
 
     // MARK: - Audio Smoothing
     private var smoothedAudioLevel: Float = 0
@@ -247,11 +248,35 @@ class VisualEngine {
 
     /// Load textures from the current inspiration pack
     func loadInspirationPack(_ pack: InspirationPack, artifacts: ExtractedArtifacts?) {
+        // Immediately clear all old textures to prevent any cross-pack leaking
+        // while the new pack's textures load asynchronously.
+        clearTextures()
+
+        // Track which pack we're loading so stale async completions are discarded
+        let targetPackID = pack.id
+        loadingPackID = targetPackID
+
+        // Validate that artifacts belong to this pack; discard mismatched artifacts
+        let validatedArtifacts: ExtractedArtifacts?
+        if let artifacts = artifacts, artifacts.packId == pack.id {
+            validatedArtifacts = artifacts
+        } else {
+            if let artifacts = artifacts {
+                print("🎨 Warning: artifacts packId \(artifacts.packId) does not match pack \(pack.id) — ignoring stale artifacts")
+            }
+            validatedArtifacts = nil
+        }
+
         Task {
             guard let loader = textureLoader else { return }
 
-            let textures = await loader.loadFromPack(pack, artifacts: artifacts)
+            let textures = await loader.loadFromPack(pack, artifacts: validatedArtifacts)
             await MainActor.run {
+                // Discard results if the user switched to a different pack while loading
+                guard self.loadingPackID == targetPackID else {
+                    print("🎨 Discarding stale textures from pack '\(pack.name)' — a newer pack is now active")
+                    return
+                }
                 self.inspirationTextures = textures
                 self.uniforms.textureCount = Int32(min(textures.count, 4))
                 // Only update palette buffer if pack has extracted colors; otherwise keep default

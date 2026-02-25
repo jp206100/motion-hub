@@ -5,7 +5,8 @@
 Motion Hub is a standalone macOS application that transforms inspiration media into procedural, audio-reactive visuals. Upload images, videos, or GIFs — an AI preprocessing pipeline extracts colors, textures, and motion patterns — then a Metal-accelerated engine renders visuals that respond to your music in real time.
 
 Built for musicians performing with Ableton Live and Push 2.
-<iframe width="560" height="315" src="https://www.youtube.com/embed/LS4A73RZh1g?si=ERjNSjRvqYyZbiHU" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+Watch a quick demo here- https://youtu.be/LS4A73RZh1g?si=fL32C5v9gZl84v2z 
 ---
 
 ## Features
